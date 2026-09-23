@@ -1,11 +1,12 @@
 import { Component, inject, signal, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { VoiceCommandService, ParsedVoiceCommand } from '../../services/voice-command.service';
 
 @Component({
   selector: 'app-uml-voice-dock',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './uml-voice-dock.component.html',
   styleUrl: './uml-voice-dock.component.css'
 })
@@ -17,6 +18,7 @@ export class UmlVoiceDockComponent {
 
   expanded = signal<boolean>(false);
   voiceMuted = signal<boolean>(false);
+  customInputText = signal<string>('');
 
   // Lista de sugerencias de órdenes para demostración rápida ante el evaluador
   suggestedCommands = [
@@ -54,5 +56,12 @@ export class UmlVoiceDockComponent {
   simulateVoiceCommand(commandText: string): void {
     const cmd = this.voiceService.processVoiceInput(commandText);
     this.commandExecuted.emit(cmd);
+  }
+
+  executeCustomText(): void {
+    const text = this.customInputText().trim();
+    if (!text) return;
+    this.simulateVoiceCommand(text);
+    this.customInputText.set('');
   }
 }

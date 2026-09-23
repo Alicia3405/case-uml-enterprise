@@ -129,8 +129,8 @@
             <span>Acceso rápido para demostración:</span>
             <span class="text-[9px] text-teal-400 font-mono">3 Dispositivos</span>
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            @for (demo of demoUsers; track demo.username) {
+          <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+            @for (demo of demoUsersList; track demo.username) {
               <button 
                 (click)="quickSwitch(demo)"
                 class="flex items-center space-x-2 p-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-lg text-left transition group">
@@ -141,7 +141,7 @@
                 </div>
                 <div class="overflow-hidden">
                   <div class="text-[11px] font-bold text-white truncate">{{ demo.name }}</div>
-                  <div class="text-[9px] text-slate-400 truncate">{{ demo.role }}</div>
+                  <div class="text-[9px] text-slate-400 truncate">@{{ demo.username }}</div>
                 </div>
               </button>
             }

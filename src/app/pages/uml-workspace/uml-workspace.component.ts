@@ -330,8 +330,10 @@ export class UmlWorkspaceComponent {
       this.currentView.set('LOGIN');
     } else if (projParam) {
       this.abrirProyecto(projParam);
+      this.notifService.checkPendingInvitationsOnLogin();
     } else {
       this.currentView.set('DASHBOARD');
+      this.notifService.checkPendingInvitationsOnLogin();
     }
 
     // 2. Suscribirse a movimientos remotos de elementos (arrastre en vivo)
@@ -366,6 +368,14 @@ export class UmlWorkspaceComponent {
     // 5. Suscripción a comandos de voz
     this.voiceService.commandStream$.subscribe(cmd => this.handleVoiceCommand(cmd));
   }
+
+  // Variables para interacción táctil en móviles y tabletas (Touch Pan, Drag y Pinch-to-Zoom)
+  private initialPinchDistance = 0;
+  private initialPinchZoom = 1;
+  private lastTouchX = 0;
+  private lastTouchY = 0;
+  private isTouchPanning = false;
+  private isPinching = false;
 
   // --- NAVEGACIÓN Y ZOOM DEL LIENZO ---
 
@@ -451,9 +461,155 @@ export class UmlWorkspaceComponent {
       this.saveCurrentProjectDiagram();
       // Notificar cambio consolidado al servidor y compañeros
       this.collabSocket.emitDiagramChange(this.diagram(), 'Movió posición de elemento en el lienzo');
-      // NOTA: El candado de exclusión mutua se mantiene mientras el usuario continúe
-      // editando la clase en el Inspector lateral derecho.
-      // Se liberará cuando el usuario deseleccione (clic en fondo del lienzo o cerrar inspector).
+    }
+  }
+
+  // --- INTERACCIÓN TÁCTIL (MÓVILES / TABLETS) ---
+
+  onTouchStart(event: TouchEvent) {
+    if (event.touches.length === 2) {
+      // Inicio de Pinch-to-Zoom y Pan con dos dedos
+      this.isPinching = true;
+      this.isTouchPanning = false;
+      this.initialPinchDistance = Math.hypot(
+        event.touches[0].clientX - event.touches[1].clientX,
+        event.touches[0].clientY - event.touches[1].clientY
+      );
+      this.initialPinchZoom = this.zoom();
+      this.lastTouchX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+      this.lastTouchY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+    } else if (event.touches.length === 1) {
+      const touch = event.touches[0];
+      const target = event.target as HTMLElement;
+      const tag = target?.tagName?.toLowerCase() || '';
+      const isBg = tag === 'svg' || target?.id === 'grid-bg' || tag === 'rect' || target?.classList?.contains('canvas-background');
+      if (isBg) {
+        this.isTouchPanning = true;
+        this.lastTouchX = touch.clientX;
+        this.lastTouchY = touch.clientY;
+        this.deseleccionarElemento();
+      }
+    }
+  }
+
+  onTouchMove(event: TouchEvent) {
+    if (event.touches.length === 2 && this.isPinching) {
+      event.preventDefault();
+      // 1. Pinch-to-Zoom
+      const currentDist = Math.hypot(
+        event.touches[0].clientX - event.touches[1].clientX,
+        event.touches[0].clientY - event.touches[1].clientY
+      );
+      if (this.initialPinchDistance > 0) {
+        const factor = currentDist / this.initialPinchDistance;
+        const newZoom = Math.min(Math.max(0.4, this.initialPinchZoom * factor), 2.5);
+        this.zoom.set(parseFloat(newZoom.toFixed(2)));
+      }
+
+      // 2. Panning con dos dedos
+      const midX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+      const midY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+      const dx = midX - this.lastTouchX;
+      const dy = midY - this.lastTouchY;
+      this.panX.update(x => x + dx);
+      this.panY.update(y => y + dy);
+      this.lastTouchX = midX;
+      this.lastTouchY = midY;
+      return;
+    }
+
+    if (event.touches.length === 1) {
+      const touch = event.touches[0];
+
+      // Pan con 1 dedo en fondo
+      if (this.isTouchPanning) {
+        event.preventDefault();
+        const dx = touch.clientX - this.lastTouchX;
+        const dy = touch.clientY - this.lastTouchY;
+        this.panX.update(x => x + dx);
+        this.panY.update(y => y + dy);
+        this.lastTouchX = touch.clientX;
+        this.lastTouchY = touch.clientY;
+        return;
+      }
+
+      // Arrastre de clase con 1 dedo
+      const draggingId = this.draggingClassId();
+      if (draggingId) {
+        event.preventDefault();
+        const currentZoom = this.zoom();
+        const currentDiagram = this.diagram();
+        let movedX = 10;
+        let movedY = 10;
+        const updatedClasses = currentDiagram.classes.map(c => {
+          if (c.id === draggingId) {
+            const newX = Math.round((touch.clientX - this.dragOffsetX) / currentZoom);
+            const newY = Math.round((touch.clientY - this.dragOffsetY) / currentZoom);
+            movedX = Math.max(10, newX);
+            movedY = Math.max(10, newY);
+            return {
+              ...c,
+              position: { x: movedX, y: movedY }
+            };
+          }
+          return c;
+        });
+
+        this.diagram.set({
+          ...currentDiagram,
+          classes: updatedClasses,
+          updatedAt: new Date().toISOString()
+        });
+
+        this.collabSocket.emitElementMove(draggingId, movedX, movedY);
+      }
+    }
+  }
+
+  onTouchEnd(event: TouchEvent) {
+    if (event.touches.length < 2) {
+      this.isPinching = false;
+    }
+    if (event.touches.length === 0) {
+      this.isTouchPanning = false;
+      this.onMouseUp();
+    }
+  }
+
+  onTouchStartClass(event: TouchEvent, cls: UmlClass) {
+    if (event.touches.length === 1) {
+      event.stopPropagation();
+      const touch = event.touches[0];
+
+      if (this.isReadOnly()) {
+        this.notify('🔒 Modo Solo Lectura: No tienes permisos para editar o mover elementos.');
+        return;
+      }
+
+      const lock = this.collabSocket.isLockedByOther(cls.id);
+      if (lock) {
+        this.notify(`🔒 Bloqueado por ${lock.userName}. Está editando este elemento.`);
+        return;
+      }
+
+      const prevSelectedId = this.selectedClassId();
+      if (prevSelectedId && prevSelectedId !== cls.id) {
+        this.collabSocket.releaseLock(prevSelectedId);
+      }
+
+      this.collabSocket.requestLock(cls.id);
+      this.selectedClassId.set(cls.id);
+      this.selectedRelationId.set(null);
+
+      if (this.isConnecting()) {
+        this.handleConnectionClick(cls.id);
+        return;
+      }
+
+      this.draggingClassId.set(cls.id);
+      const currentZoom = this.zoom();
+      this.dragOffsetX = touch.clientX - (cls.position.x * currentZoom);
+      this.dragOffsetY = touch.clientY - (cls.position.y * currentZoom);
     }
   }
 
@@ -2049,6 +2205,7 @@ export class UmlWorkspaceComponent {
       return;
     }
     this.currentView.set('DASHBOARD');
+    this.notifService.checkPendingInvitationsOnLogin();
   }
 
   quickSwitchUser(userKey: 'carlos' | 'laura' | 'pedro' | 'admin') {
@@ -2056,6 +2213,7 @@ export class UmlWorkspaceComponent {
     this.loginUsername.set(userKey);
     this.loginPassword.set(pass);
     this.iniciarSesion();
+    this.notifService.checkPendingInvitationsOnLogin();
   }
 
   guardarNuevaPasswordForzada() {
@@ -2069,6 +2227,7 @@ export class UmlWorkspaceComponent {
       this.loginError.set(res.message);
     } else {
       this.currentView.set('DASHBOARD');
+      this.notifService.checkPendingInvitationsOnLogin();
       this.notify('Contraseña actualizada con éxito.');
     }
   }

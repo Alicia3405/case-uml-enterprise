@@ -15,18 +15,42 @@
         </span>
       </div>
 
-      <!-- Transcripción en vivo -->
-      <div class="bg-slate-950/80 border border-slate-800/80 rounded-xl p-3 min-h-[56px] flex flex-col justify-center">
-        <div class="text-[10px] uppercase font-bold text-slate-500 mb-1 flex items-center justify-between">
-          <span>{{ voiceService.isListening() ? 'Transcribiendo audio...' : 'Última orden recibida' }}</span>
+      <!-- Transcripción en vivo o Campo de Orden Directa -->
+      <div class="bg-slate-950/80 border border-slate-800/80 rounded-xl p-3 min-h-[56px] flex flex-col justify-center space-y-2">
+        <div class="text-[10px] uppercase font-bold text-slate-500 flex items-center justify-between">
+          <span>{{ voiceService.isListening() ? '🎙️ Escuchando audio...' : 'Órdenes de Voz y Texto' }}</span>
           @if (voiceService.isListening()) {
             <span class="text-teal-400 animate-pulse">EN VIVO</span>
           }
         </div>
-        <p class="font-mono text-xs text-teal-300 italic">
-          "{{ voiceService.transcript() || 'Presiona el micrófono y pronuncia una orden...' }}"
+        <p class="font-mono text-xs text-teal-300 italic truncate">
+          "{{ voiceService.transcript() || 'Habla o escribe tu orden...' }}"
         </p>
+
+        <!-- Campo de Texto para Ejecutar Cualquier Comando (Ideal para móviles y navegadores sin HTTPS) -->
+        <div class="flex items-center space-x-1.5 pt-1 border-t border-slate-800">
+          <input 
+            type="text" 
+            [ngModel]="customInputText()" 
+            (ngModelChange)="customInputText.set($event)"
+            (keydown.enter)="executeCustomText()"
+            placeholder="Ej. crea tabla Mascota, deshacer..."
+            class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 outline-none focus:border-teal-500 font-mono"
+          />
+          <button 
+            (click)="executeCustomText()"
+            [disabled]="!customInputText().trim()"
+            class="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition">
+            Ejecutar
+          </button>
+        </div>
       </div>
+
+      @if (voiceService.feedbackMessage()) {
+        <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300">
+          💡 {{ voiceService.feedbackMessage() }}
+        </div>
+      }
 
       <!-- Último comando interpretado -->
       @if (voiceService.lastCommand(); as cmd) {

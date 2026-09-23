@@ -122,34 +122,37 @@ export class VoiceCommandService {
 
         this.recognition.onerror = (event: any) => {
           console.warn('SpeechRecognition error:', event.error);
-          if (event.error !== 'no-speech') {
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
+            this.isListening.set(false);
+            this.feedbackMessage.set('Permiso de micrófono no disponible (requiere HTTPS en móviles). Usa el campo de texto o la app móvil.');
+          } else if (event.error !== 'no-speech') {
             this.isListening.set(false);
           }
         };
 
         this.recognition.onend = () => {
-          // Si sigue en modo de escucha intencional, reiniciar para mantenerlo continuo durante el examen
+          // Solo reiniciar si sigue activo intencionalmente y no hubo error crítico
           if (this.isListening()) {
             try {
               this.recognition.start();
             } catch {
-              setTimeout(() => {
-                if (this.isListening()) {
-                  try { this.recognition.start(); } catch {}
-                }
-              }, 200);
+              this.isListening.set(false);
             }
           }
         };
 
         this.isSupported.set(true);
 
-        // Solicitar permisos del micrófono explícitamente en navegadores (Chrome / Edge)
+        // Intentar solicitar permisos solo si el navegador lo soporta de forma segura
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
           navigator.mediaDevices.getUserMedia({ audio: true })
             .then(() => console.log('Permiso de micrófono concedido.'))
-            .catch(err => console.warn('Permiso de micrófono denegado o no disponible:', err));
+            .catch(err => {
+              console.warn('Permiso de micrófono no concedido en este origen:', err);
+            });
         }
+      } else {
+        this.isSupported.set(false);
       }
 
       if ('speechSynthesis' in window) {

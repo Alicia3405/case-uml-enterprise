@@ -24,13 +24,16 @@ export class LoginDialogComponent {
   errorMessage = signal<string>('');
   successMessage = signal<string>('');
 
-  // Modo rápido de demostración
-  demoUsers = [
-    { username: 'carlos', pass: 'empresa2026', role: 'Owner / Diseñador', name: 'Carlos Mendoza', color: '#0ea5e9' },
-    { username: 'laura', pass: 'empresa2026', role: 'Colaborador Editor', name: 'Laura Paredes', color: '#f97316' },
-    { username: 'pedro', pass: 'empresa2026', role: 'Colaborador Lector', name: 'Pedro Quispe', color: '#10b981' },
-    { username: 'admin', pass: 'admin', role: 'Jefe Administrador', name: 'Jefe General TI', color: '#8b5cf6' }
-  ];
+  // Lista dinámica de usuarios de la organización
+  get demoUsersList() {
+    return this.authService.users().map(u => ({
+      username: u.username,
+      pass: u.password,
+      role: u.rol === 'ADMINISTRADOR' ? 'Jefe Administrador' : (u.username === 'carlos' ? 'Owner / Diseñador' : 'Ingeniero'),
+      name: u.nombreCompleto,
+      color: u.color
+    }));
+  }
 
   login(): void {
     this.errorMessage.set('');

@@ -40,7 +40,7 @@ export class NotificationPushService {
     this.requestBrowserNotificationPermission();
   }
 
-  private initInvitations(): void {
+  public initInvitations(): void {
     let stored: ProjectInvitation[] = [];
     try {
       const raw = localStorage.getItem(INVITATIONS_STORAGE_KEY);
@@ -49,6 +49,24 @@ export class NotificationPushService {
       console.error(e);
     }
     this.invitations.set(stored);
+  }
+
+  public checkPendingInvitationsOnLogin(): void {
+    this.initInvitations();
+    const user = this.authService.currentUser();
+    if (!user) return;
+    const pending = this.invitations().filter(inv => 
+      inv.targetUserId === user.id && inv.status === 'PENDING'
+    );
+    if (pending.length > 0) {
+      const latest = pending[0];
+      this.activePushToast.set(latest);
+      this.triggerNativePushNotification(
+        '🔔 Solicitud de Colaboración Pendiente',
+        `${latest.senderName} te ha invitado a colaborar en "${latest.projectName}" como ${latest.role === 'EDITOR' ? 'Editor' : 'Lector'}.`,
+        latest.id
+      );
+    }
   }
 
   private persistInvitations(list: ProjectInvitation[]): void {
