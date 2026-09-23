@@ -1,5 +1,4 @@
-import * as firebaseApp from 'firebase/app';
-const initializeApp = firebaseApp.initializeApp;
+import { initializeApp } from 'firebase/app';
 
 // Your web app's Firebase configuration
 export const firebaseConfig = {

@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import * as firebaseApp from 'firebase/app';
-const initializeApp = firebaseApp.initializeApp;
+import { HttpClient } from '@angular/common/http';
+import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 import { firstValueFrom } from 'rxjs';
 import { BASE_PATH } from '../api/variables';
@@ -88,7 +88,7 @@ export class FcmService {
       }
 
       await firstValueFrom(
-        this.http.post(`${this.basePath}/api/v1/notifications/register-token`, {
+        (this.http as HttpClient).post(`${this.basePath}/api/v1/notifications/register-token`, {
           usuarioId,
           token,
           platform: 'web'
@@ -114,7 +114,7 @@ export class FcmService {
 
     try {
       await firstValueFrom(
-        this.http.delete(`${this.basePath}/api/v1/notifications/unregister-token`, {
+        (this.http as HttpClient).delete(`${this.basePath}/api/v1/notifications/unregister-token`, {
           params: { token }
         })
       );
@@ -128,12 +128,12 @@ export class FcmService {
 
   private async isRegisteredOnServer(usuarioId: string): Promise<boolean> {
     const response = await firstValueFrom(
-      this.http.get<{ enabled?: boolean }>(`${this.basePath}/api/v1/notifications/status`, {
+      (this.http as HttpClient).get<{ enabled?: boolean }>(`${this.basePath}/api/v1/notifications/status`, {
         params: { usuarioId }
       })
     );
 
-    return !!response?.enabled;
+    return !!(response as any)?.enabled;
   }
 
   private getStorageKey(usuarioId: string): string {
