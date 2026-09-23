@@ -1156,55 +1156,6 @@
         }
       </div>
     </div>
-        
-        <!-- Indicador Intuitivo Modo Online / Offline (Estilo Chip Móvil) -->
-        <div 
-          class="flex items-center space-x-1 px-2 py-1 rounded-full border text-[10px] sm:text-[11px] font-bold shadow-sm transition-all duration-300"
-          [class.bg-emerald-500\/15]="collabSocket.isNetworkOnline()"
-          [class.text-emerald-300]="collabSocket.isNetworkOnline()"
-          [class.border-emerald-500\/40]="collabSocket.isNetworkOnline()"
-          [class.bg-rose-500\/20]="!collabSocket.isNetworkOnline()"
-          [class.text-rose-300]="!collabSocket.isNetworkOnline()"
-          [class.border-rose-500\/40]="!collabSocket.isNetworkOnline()">
-          <span class="inline-flex h-2 w-2 rounded-full" [class.bg-emerald-400]="collabSocket.isNetworkOnline()" [class.bg-rose-500]="!collabSocket.isNetworkOnline()"></span>
-          <span class="hidden md:inline font-mono">{{ collabSocket.isNetworkOnline() ? 'EN LÍNEA' : 'OFFLINE' }}</span>
-        </div>
-
-        <!-- Botón Centro de Notificaciones & Invitaciones Push -->
-        <button 
-          (click)="showNotificationsModal.set(true)"
-          class="relative p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
-          title="Centro de Notificaciones & Solicitudes">
-          <span class="text-sm">🔔</span>
-          @if (notifService.unreadCount() > 0) {
-            <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center animate-bounce shadow">
-              {{ notifService.unreadCount() }}
-            </span>
-          }
-        </button>
-
-        <!-- Chip del Usuario Actual & Acceso a Perfil -->
-        <div class="flex items-center space-x-1.5 pl-1.5 pr-2 py-1 rounded-lg bg-slate-800 border border-slate-700">
-          <button 
-            (click)="showProfileModal.set(true)"
-            class="flex items-center space-x-1 hover:opacity-80 transition"
-            title="Mi Perfil / Cambiar Contraseña">
-            <div 
-              class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shadow overflow-hidden"
-              [style.background-color]="authService.currentUser()?.color || '#0ea5e9'">
-              @if (authService.currentUser()?.avatarUrl) {
-                <img [src]="authService.currentUser()?.avatarUrl" alt="Avatar" class="w-full h-full object-cover" />
-              } @else {
-                {{ authService.currentUser()?.username?.charAt(0)?.toUpperCase() || 'U' }}
-              }
-            </div>
-            <span class="text-xs font-bold text-slate-200 hidden xl:inline truncate max-w-[80px]">
-              {{ authService.currentUser()?.nombreCompleto }}
-            </span>
-          </button>
-        </div>
-      </div>
-    </header>
 
     <!-- Input Oculto para Importación XMI de Enterprise Architect -->
     <input #xmiFileInput type="file" accept=".xmi,.xml" (change)="onFileSelected($event)" class="hidden" />

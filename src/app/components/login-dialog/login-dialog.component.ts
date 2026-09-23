@@ -28,7 +28,7 @@ export class LoginDialogComponent {
   get demoUsersList() {
     return this.authService.users().map(u => ({
       username: u.username,
-      pass: u.password,
+      pass: u.password || '',
       role: u.rol === 'ADMINISTRADOR' ? 'Jefe Administrador' : (u.username === 'carlos' ? 'Owner / Diseñador' : 'Ingeniero'),
       name: u.nombreCompleto,
       color: u.color
@@ -50,9 +50,9 @@ export class LoginDialogComponent {
     }
   }
 
-  quickSwitch(demo: { username: string; pass: string }): void {
+  quickSwitch(demo: { username: string; pass?: string }): void {
     this.username = demo.username;
-    this.password = demo.pass;
+    this.password = demo.pass || '';
     this.login();
   }
 
