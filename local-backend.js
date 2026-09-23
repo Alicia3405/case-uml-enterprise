@@ -911,7 +911,16 @@ const server = http.createServer(async (req, res) => {
   if ((pathname === '/api/proyectos' || pathname === '/api/v1/proyectos') && method === 'POST') {
     const body = await parseBody(req);
     if (Array.isArray(body)) {
-      enterpriseProjects = body;
+      const map = new Map();
+      for (const p of enterpriseProjects) {
+        if (p && p.id) map.set(p.id, p);
+      }
+      for (const p of body) {
+        if (p && p.id) {
+          map.set(p.id, p);
+        }
+      }
+      enterpriseProjects = Array.from(map.values());
     } else if (body && body.id) {
       const idx = enterpriseProjects.findIndex(p => p.id === body.id);
       if (idx >= 0) {

@@ -2241,7 +2241,7 @@ export class UmlWorkspaceComponent {
       return;
     }
     this.currentView.set('DASHBOARD');
-    this.notifService.checkPendingInvitationsOnLogin();
+    this.projectService.fetchProjectsFromBackend();
   }
 
   quickSwitchUser(userKey: 'carlos' | 'laura' | 'pedro' | 'admin') {
@@ -2249,7 +2249,6 @@ export class UmlWorkspaceComponent {
     this.loginUsername.set(userKey);
     this.loginPassword.set(pass);
     this.iniciarSesion();
-    this.notifService.checkPendingInvitationsOnLogin();
   }
 
   guardarNuevaPasswordForzada() {
@@ -2263,7 +2262,7 @@ export class UmlWorkspaceComponent {
       this.loginError.set(res.message);
     } else {
       this.currentView.set('DASHBOARD');
-      this.notifService.checkPendingInvitationsOnLogin();
+      this.projectService.fetchProjectsFromBackend();
       this.notify('Contraseña actualizada con éxito.');
     }
   }
@@ -2294,6 +2293,7 @@ export class UmlWorkspaceComponent {
     this.saveCurrentProjectDiagram();
     this.collabSocket.leaveProjectRoom();
     this.currentView.set('DASHBOARD');
+    this.projectService.fetchProjectsFromBackend();
     if (typeof window !== 'undefined' && window.history) {
       window.history.replaceState({}, '', '/');
     }
