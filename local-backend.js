@@ -933,6 +933,33 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, wrapResponse(enterpriseProjects, 'Proyectos actualizados'));
   }
 
+  // Asignación directa de colaborador a un proyecto específico
+  if ((pathname === '/api/proyectos/colaborador' || pathname === '/api/v1/proyectos/colaborador') && method === 'POST') {
+    const body = await parseBody(req);
+    const { projectId, collaborator } = body;
+    const proj = enterpriseProjects.find(p => p.id === projectId);
+    if (proj && collaborator) {
+      if (!proj.colaboradores) proj.colaboradores = [];
+      const idx = proj.colaboradores.findIndex(c => 
+        c.userId?.toLowerCase() === collaborator.userId?.toLowerCase() || 
+        c.username?.toLowerCase() === collaborator.username?.toLowerCase()
+      );
+      if (collaborator.permission === 'NONE') {
+        if (idx >= 0) proj.colaboradores.splice(idx, 1);
+      } else {
+        if (idx >= 0) {
+          proj.colaboradores[idx] = { ...proj.colaboradores[idx], ...collaborator };
+        } else {
+          proj.colaboradores.push(collaborator);
+        }
+      }
+      proj.updatedAt = new Date().toISOString();
+      broadcastToAllClients({ type: 'PROJECTS_SYNCED', projects: enterpriseProjects });
+      return sendJson(res, 200, wrapResponse(enterpriseProjects, 'Colaborador asignado directamente'));
+    }
+    return sendJson(res, 200, wrapResponse(enterpriseProjects, 'Operación procesada'));
+  }
+
   // Si no coincide, respuesta genérica exitosa
   return sendJson(res, 200, wrapResponse({}, 'Endpoint simulado local'));
 });

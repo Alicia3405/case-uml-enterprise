@@ -223,12 +223,17 @@ export class ProjectWorkspaceService {
             if (idx === -1) {
               merged.push(localP);
             } else {
-              // Si el local tiene colaboradores más recientes, asegurar preservarlos
-              const localColabs = localP.colaboradores || [];
-              const backendColabs = merged[idx].colaboradores || [];
-              if (localColabs.length > backendColabs.length) {
-                merged[idx].colaboradores = localColabs;
+              // Fusionar colaboradores de backend y local
+              const colabMap = new Map();
+              for (const c of (merged[idx].colaboradores || [])) {
+                const key = (c.userId || c.username || '').toLowerCase();
+                if (key) colabMap.set(key, c);
               }
+              for (const c of (localP.colaboradores || [])) {
+                const key = (c.userId || c.username || '').toLowerCase();
+                if (key) colabMap.set(key, c);
+              }
+              merged[idx].colaboradores = Array.from(colabMap.values());
             }
           }
           this.projects.set(merged);
@@ -469,6 +474,26 @@ export class ProjectWorkspaceService {
     this.projects.set(updatedProjects);
     this.persistProjects(updatedProjects);
     this.pushProjectsToBackend(updatedProjects);
+    
+    // Notificación directa de colaborador al backend REST
+    if (typeof window !== 'undefined') {
+      fetch(`${this.getBackendUrl()}/api/v1/proyectos/colaborador`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId,
+          collaborator: {
+            userId: effId,
+            username: effUsername,
+            nombreCompleto: effName,
+            color: effColor,
+            permission: newPermission,
+            canDownloadBackend: true
+          }
+        })
+      }).catch(() => {});
+    }
+
     this.broadcastProjects(updatedProjects);
     return true;
   }
