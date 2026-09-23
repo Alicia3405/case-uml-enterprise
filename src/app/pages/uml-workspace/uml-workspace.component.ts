@@ -28,6 +28,7 @@ import { AuthSessionService } from '../../services/auth-session.service';
 import { ProjectWorkspaceService } from '../../services/project-workspace.service';
 import { CollaborationSocketService } from '../../services/collaboration-socket.service';
 import { ElementLock, ProjectPermission, ProjectSummary } from '../../models/collaboration.models';
+import { copyToClipboard } from '../../utils/clipboard-helper';
 
 @Component({
   selector: 'app-uml-workspace',
@@ -311,7 +312,15 @@ export class UmlWorkspaceComponent {
       }
     });
 
-    // 4. Suscribirse a notificaciones de sala
+    // 4. Suscribirse a cambios de permisos en tiempo real
+    this.collabSocket.remotePermissionChange$.subscribe(({ targetUserId, newPermission }) => {
+      const activeId = this.projectService.activeProjectId();
+      if (activeId) {
+        this.projectService.updateCollaboratorPermission(activeId, targetUserId, newPermission);
+      }
+    });
+
+    // 5. Suscribirse a notificaciones de sala
     this.collabSocket.remoteNotification$.subscribe(msg => {
       this.notify(msg);
     });
@@ -938,7 +947,7 @@ export class UmlWorkspaceComponent {
   }
 
   copiarXmiAlPortapapeles() {
-    navigator.clipboard.writeText(this.generatedXmi());
+    copyToClipboard(this.generatedXmi());
     this.notify('Código XMI 2.1 copiado al portapapeles.');
   }
 
@@ -978,7 +987,7 @@ export class UmlWorkspaceComponent {
   }
 
   copiarDdlAlPortapapeles() {
-    navigator.clipboard.writeText(this.generatedDdl());
+    copyToClipboard(this.generatedDdl());
     this.notify('Script SQL copiado al portapapeles.');
   }
 
@@ -2116,13 +2125,14 @@ export class UmlWorkspaceComponent {
   copiarEnlaceProyecto(projectId?: string) {
     const pId = projectId || this.projectService.activeProjectId();
     const link = this.projectService.getShareableLink(pId);
-    navigator.clipboard.writeText(link);
+    copyToClipboard(link);
     this.notify('¡Enlace protegido del proyecto copiado al portapapeles!');
   }
 
   cambiarPermisoColaborador(userId: string, perm: ProjectPermission) {
     const projId = this.projectService.activeProjectId();
     this.projectService.updateCollaboratorPermission(projId, userId, perm);
+    this.collabSocket.emitPermissionChange(userId, perm);
     this.notify('Permiso de colaborador actualizado.');
   }
 

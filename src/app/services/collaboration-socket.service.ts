@@ -27,6 +27,7 @@ export class CollaborationSocketService {
   // Streams de eventos para el lienzo UML
   remoteElementMove$ = new Subject<{ elementId: string; x: number; y: number; userId: string }>();
   remoteDiagramSync$ = new Subject<{ diagram: any; userId: string }>();
+  remotePermissionChange$ = new Subject<{ targetUserId: string; newPermission: ProjectPermission }>();
   remoteNotification$ = new Subject<string>();
 
   private ws: WebSocket | null = null;
@@ -115,11 +116,12 @@ export class CollaborationSocketService {
   private connectWebSocket(projectId: string, onlineUser: OnlineUser): void {
     if (typeof window === 'undefined') return;
 
-    const wsUrl = (window as any).__env?.wsUrl;
-    // Solo intentar conectar por WebSocket si hay un servidor backend WebSocket explícitamente configurado
+    let wsUrl = (window as any).__env?.wsUrl;
     if (!wsUrl) {
-      this.isConnected.set(true);
-      return;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.hostname;
+      // Conectar por defecto al backend en el puerto 8080 con la IP / Host del navegador
+      wsUrl = `${protocol}//${host}:8080/ws/uml`;
     }
 
     try {
@@ -258,6 +260,23 @@ export class CollaborationSocketService {
             diagram: payload.diagram,
             userId: payload.userId || ''
           });
+        }
+        break;
+
+      case 'PERMISSION_CHANGED':
+        if (payload.permissionChange) {
+          this.remotePermissionChange$.next(payload.permissionChange);
+          // Actualizar presencia local si está presente
+          this.activeUsers.update(list => list.map(u => {
+            if (u.userId === payload.permissionChange!.targetUserId) {
+              return { ...u, permission: payload.permissionChange!.newPermission };
+            }
+            return u;
+          }));
+          if (currentUserId === payload.permissionChange.targetUserId) {
+            const roleName = payload.permissionChange.newPermission === 'EDITOR' ? 'Editor' : (payload.permissionChange.newPermission === 'VIEWER' ? 'Lector' : 'Sin Acceso');
+            this.remoteNotification$.next(`🔔 Tu rol en este proyecto ha sido actualizado a: ${roleName}`);
+          }
         }
         break;
 
@@ -436,6 +455,14 @@ export class CollaborationSocketService {
       type: 'AUDIT_EVENT',
       projectId: this.currentProjectId,
       audit: entry
+    });
+  }
+
+  emitPermissionChange(targetUserId: string, newPermission: ProjectPermission): void {
+    this.broadcastMessage({
+      type: 'PERMISSION_CHANGED',
+      projectId: this.currentProjectId,
+      permissionChange: { targetUserId, newPermission }
     });
   }
 

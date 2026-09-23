@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthSessionService } from '../../services/auth-session.service';
 import { ProjectWorkspaceService } from '../../services/project-workspace.service';
+import { CollaborationSocketService } from '../../services/collaboration-socket.service';
 import { ProjectPermission, ProjectSummary, ProjectCollaborator } from '../../models/collaboration.models';
+import { copyToClipboard } from '../../utils/clipboard-helper';
 
 export interface DisplayMember {
   userId: string;
@@ -24,6 +26,7 @@ export interface DisplayMember {
 export class ProjectCollaboratorsModalComponent implements OnInit {
   public authService = inject(AuthSessionService);
   public projectService = inject(ProjectWorkspaceService);
+  public collabSocket = inject(CollaborationSocketService);
 
   projectId = input.required<string>();
   closed = output<void>();
@@ -90,7 +93,7 @@ export class ProjectCollaboratorsModalComponent implements OnInit {
   }
 
   copyLink(): void {
-    navigator.clipboard.writeText(this.shareableLink);
+    copyToClipboard(this.shareableLink);
     this.copiedToast.set(true);
     setTimeout(() => this.copiedToast.set(false), 2500);
   }
@@ -141,6 +144,7 @@ export class ProjectCollaboratorsModalComponent implements OnInit {
 
     // Delegar permiso en el proyecto
     this.projectService.updateCollaboratorPermission(p.id, targetUserId, this.inviteRole());
+    this.collabSocket.emitPermissionChange(targetUserId, this.inviteRole());
     this.refreshProject();
 
     this.inviteQuery.set('');
@@ -154,6 +158,7 @@ export class ProjectCollaboratorsModalComponent implements OnInit {
     if (!p || newRole === 'OWNER') return;
 
     this.projectService.updateCollaboratorPermission(p.id, userId, newRole);
+    this.collabSocket.emitPermissionChange(userId, newRole);
     this.refreshProject();
   }
 
@@ -163,6 +168,7 @@ export class ProjectCollaboratorsModalComponent implements OnInit {
     if (!p) return;
 
     this.projectService.updateCollaboratorPermission(p.id, userId, 'NONE');
+    this.collabSocket.emitPermissionChange(userId, 'NONE');
     this.refreshProject();
   }
 }

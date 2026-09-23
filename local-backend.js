@@ -989,6 +989,7 @@ function handleWsMessage(msg, client) {
       break;
 
     case 'AUDIT_EVENT':
+    case 'PERMISSION_CHANGED':
       broadcastToRoom(projectId, msg, client.socket);
       break;
   }
