@@ -10,10 +10,9 @@ const INITIAL_USERS: AppUser[] = [
     id: 'usr_admin',
     username: 'admin',
     password: 'admin',
-    nombreCompleto: 'Jefe General (Administrador)',
+    nombreCompleto: 'Jefe General (Super Administrador)',
     rol: 'ADMINISTRADOR',
-    departamento: 'Gerencia General & TI',
-    color: '#8b5cf6', // Violeta
+    color: '#8b5cf6',
     debeCambiarPassword: false,
     fechaCreacion: new Date().toISOString()
   },
@@ -21,33 +20,100 @@ const INITIAL_USERS: AppUser[] = [
     id: 'usr_carlos',
     username: 'carlos',
     password: 'empresa2026',
-    nombreCompleto: 'Ing. Carlos Mendoza',
+    nombreCompleto: 'Carlos Mendoza',
     rol: 'USUARIO',
-    departamento: 'Arquitectura de Datos',
-    color: '#0ea5e9', // Azul Cyan
-    debeCambiarPassword: true, // Debe cambiar contraseña en primer ingreso
+    color: '#0ea5e9',
+    debeCambiarPassword: false,
     fechaCreacion: new Date().toISOString()
   },
   {
     id: 'usr_laura',
     username: 'laura',
     password: 'empresa2026',
-    nombreCompleto: 'Dra. Laura Paredes',
+    nombreCompleto: 'Laura Paredes',
     rol: 'USUARIO',
-    departamento: 'Diseño e Ingeniería',
-    color: '#f97316', // Naranja Vivo
-    debeCambiarPassword: true,
+    color: '#f97316',
+    debeCambiarPassword: false,
     fechaCreacion: new Date().toISOString()
   },
   {
     id: 'usr_pedro',
     username: 'pedro',
     password: 'empresa2026',
-    nombreCompleto: 'Ing. Pedro Quispe',
+    nombreCompleto: 'Pedro Quispe',
     rol: 'USUARIO',
-    departamento: 'Auditoría y Pruebas',
-    color: '#10b981', // Verde Esmeralda
-    debeCambiarPassword: true,
+    color: '#10b981',
+    debeCambiarPassword: false,
+    fechaCreacion: new Date().toISOString()
+  },
+  {
+    id: 'usr_sofia',
+    username: 'sofia',
+    password: 'empresa2026',
+    nombreCompleto: 'Sofía Rojas',
+    rol: 'USUARIO',
+    color: '#ec4899',
+    debeCambiarPassword: false,
+    fechaCreacion: new Date().toISOString()
+  },
+  {
+    id: 'usr_miguel',
+    username: 'miguel',
+    password: 'empresa2026',
+    nombreCompleto: 'Miguel Fernández',
+    rol: 'USUARIO',
+    color: '#3b82f6',
+    debeCambiarPassword: false,
+    fechaCreacion: new Date().toISOString()
+  },
+  {
+    id: 'usr_valeria',
+    username: 'valeria',
+    password: 'empresa2026',
+    nombreCompleto: 'Valeria Castro',
+    rol: 'USUARIO',
+    color: '#a855f7',
+    debeCambiarPassword: false,
+    fechaCreacion: new Date().toISOString()
+  },
+  {
+    id: 'usr_diego',
+    username: 'diego',
+    password: 'empresa2026',
+    nombreCompleto: 'Diego Morales',
+    rol: 'USUARIO',
+    color: '#14b8a6',
+    debeCambiarPassword: false,
+    fechaCreacion: new Date().toISOString()
+  },
+  {
+    id: 'usr_camila',
+    username: 'camila',
+    password: 'empresa2026',
+    nombreCompleto: 'Camila Vargas',
+    rol: 'USUARIO',
+    color: '#f43f5e',
+    debeCambiarPassword: false,
+    fechaCreacion: new Date().toISOString()
+  },
+  {
+    id: 'usr_fernando',
+    username: 'fernando',
+    password: 'empresa2026',
+    nombreCompleto: 'Fernando Romero',
+    rol: 'USUARIO',
+    color: '#eab308',
+    debeCambiarPassword: false,
+    fechaCreacion: new Date().toISOString()
+  },
+  {
+    id: 'usr_lucia',
+    username: 'lucia',
+    password: 'empresa2026',
+    nombreCompleto: 'Lucía Gutiérrez',
+    rol: 'USUARIO',
+    color: '#6366f1',
+    debeCambiarPassword: false,
     fechaCreacion: new Date().toISOString()
   }
 ];
@@ -84,7 +150,7 @@ export class AuthSessionService {
       storedUsers = [...INITIAL_USERS];
       this.persistUsers(storedUsers);
     } else {
-      // Deduplicar usuarios por username y por id para evitar cuentas repetidas en localStorage
+      // Deduplicar y asegurar que todos los usuarios iniciales estén presentes
       const seenUsernames = new Set<string>();
       const seenIds = new Set<string>();
       const cleaned: AppUser[] = [];
@@ -94,6 +160,11 @@ export class AuthSessionService {
           seenUsernames.add(uName);
           seenIds.add(u.id);
           cleaned.push(u);
+        }
+      }
+      for (const initU of INITIAL_USERS) {
+        if (!cleaned.some(u => u.username.toLowerCase() === initU.username.toLowerCase())) {
+          cleaned.push(initU);
         }
       }
       storedUsers = cleaned;
@@ -195,8 +266,6 @@ export class AuthSessionService {
     username: string;
     nombreCompleto: string;
     password?: string;
-    departamento?: string;
-    rol?: UserRole;
   }): { success: boolean; message: string; user?: AppUser } {
     if (!this.isAdmin()) {
       return { success: false, message: 'Solo el Administrador puede dar de alta nuevos usuarios.' };
@@ -208,22 +277,21 @@ export class AuthSessionService {
     }
 
     if (this.users().some(u => u.username.toLowerCase() === cleanName)) {
-      return { success: false, message: `El nombre de usuario "${cleanName}" ya está registrado.` };
+      return { success: false, message: `El usuario "${cleanName}" ya está registrado.` };
     }
 
     // Colores rotativos atractivos para avatares y candados
-    const palette = ['#0ea5e9', '#f97316', '#10b981', '#ec4899', '#f59e0b', '#06b6d4', '#6366f1'];
+    const palette = ['#0ea5e9', '#f97316', '#10b981', '#ec4899', '#f59e0b', '#06b6d4', '#6366f1', '#a855f7'];
     const assignedColor = palette[this.users().length % palette.length];
 
     const newUser: AppUser = {
       id: 'usr_' + Date.now(),
       username: cleanName,
-      password: payload.password?.trim() || 'empresa2026', // Contraseña provisional fijada
+      password: payload.password?.trim() || 'empresa2026',
       nombreCompleto: payload.nombreCompleto.trim() || cleanName,
-      rol: payload.rol || 'USUARIO',
-      departamento: payload.departamento?.trim() || 'Desarrollo de Software',
+      rol: 'USUARIO',
       color: assignedColor,
-      debeCambiarPassword: true, // Forzar reseteo en su primer acceso
+      debeCambiarPassword: false,
       fechaCreacion: new Date().toISOString()
     };
 

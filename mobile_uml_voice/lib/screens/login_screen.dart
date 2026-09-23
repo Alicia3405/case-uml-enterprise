@@ -12,8 +12,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameCtrl = TextEditingController(text: 'pedro.quispe');
-  final _passwordCtrl = TextEditingController(text: '123456');
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
   bool _isSubmitting = false;
 
@@ -97,63 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
                   ),
-                  const SizedBox(height: 28),
-
-                  // Acceso Rápido con 1 toque
-                  const Text(
-                    'Acceso Rápido (Perfiles de Demostración):',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: AuthService().allUsers.map((user) {
-                      return InkWell(
-                        onTap: () => _doLogin(user),
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFF334155)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircleAvatar(
-                                radius: 10,
-                                backgroundColor: Color(int.parse(user.color.replaceAll('#', '0xFF'))),
-                                child: Text(
-                                  user.nombreCompleto.isNotEmpty ? user.nombreCompleto[0] : 'U',
-                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                user.username,
-                                style: const TextStyle(fontSize: 11, color: Colors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 22),
-                  const Row(
-                    children: [
-                      Expanded(child: Divider(color: Color(0xFF334155))),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Text('o ingresa con credenciales', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                      ),
-                      Expanded(child: Divider(color: Color(0xFF334155))),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 12),
 
                   // Campo Usuario
                   TextField(

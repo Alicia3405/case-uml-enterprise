@@ -271,10 +271,8 @@ export class ProjectWorkspaceService {
     const existingIdx = updatedColabs.findIndex(c => c.userId === targetUserId);
 
     if (newPermission === 'NONE') {
-      // Remover o marcar como sin acceso
-      if (existingIdx >= 0) {
-        updatedColabs[existingIdx] = { ...updatedColabs[existingIdx], permission: 'NONE' };
-      }
+      // Remover completamente de la lista de colaboradores
+      updatedColabs = updatedColabs.filter(c => c.userId !== targetUserId);
     } else {
       if (existingIdx >= 0) {
         updatedColabs[existingIdx] = { ...updatedColabs[existingIdx], permission: newPermission };

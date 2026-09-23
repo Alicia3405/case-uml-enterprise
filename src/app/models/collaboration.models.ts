@@ -24,6 +24,20 @@ export interface ProjectCollaborator {
   canDownloadBackend?: boolean; // Permiso explícito delegado por el Dueño para descargar el ZIP del backend
 }
 
+export interface ProjectInvitation {
+  id: string;
+  projectId: string;
+  projectName: string;
+  senderId: string;
+  senderName: string;
+  targetUserId: string;
+  targetUsername: string;
+  targetFullName: string;
+  role: 'EDITOR' | 'VIEWER';
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
+  createdAt: string;
+}
+
 export interface ProjectSummary {
   id: string;
   name: string;

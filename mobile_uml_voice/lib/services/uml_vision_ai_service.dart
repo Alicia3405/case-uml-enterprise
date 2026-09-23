@@ -19,7 +19,10 @@ class UmlVisionAiService {
     final hint = (optionalContextHint ?? '').toLowerCase();
     List<Map<String, dynamic>> rawEntities;
 
-    if (hint.contains('hospital') || hint.contains('médico') || hint.contains('salud')) {
+    if (hint.contains('mascota') || hint.contains('veterinaria') || hint.contains('animal') || hint.contains('cita') || hint.contains('perro') || hint.contains('medica') || hint.contains('médica') || hint.isEmpty) {
+      // Plantilla Canónica del Examen (Veterinaria / Mascotas / Citas / Historia Médica)
+      rawEntities = _veterinaryTemplate;
+    } else if (hint.contains('hospital') || hint.contains('médico') || hint.contains('salud')) {
       rawEntities = _hospitalTemplate;
     } else if (hint.contains('hotel') || hint.contains('reserva') || hint.contains('habitación')) {
       rawEntities = _hotelTemplate;
@@ -28,7 +31,7 @@ class UmlVisionAiService {
     } else if (hint.contains('banco') || hint.contains('financiero') || hint.contains('cuenta')) {
       rawEntities = _bankingTemplate;
     } else {
-      // Default: Sistema Comercial / E-Commerce / Ventas detectado del boceto
+      // Default: Sistema Comercial / E-Commerce / Ventas
       rawEntities = _ecommerceTemplate;
     }
 
@@ -381,4 +384,64 @@ class UmlVisionAiService {
       ],
     },
   ];
+
+  static final _veterinaryTemplate = [
+    {
+      'name': 'Cliente',
+      'stereotype': '«entity»',
+      'attributes': [
+        {'name': 'id', 'type': 'Long', 'isPrimaryKey': true},
+        {'name': 'nombre', 'type': 'String'},
+        {'name': 'telefono', 'type': 'String'},
+        {'name': 'email', 'type': 'String'},
+      ],
+      'methods': [
+        {'name': 'registrarMascota', 'returnType': 'void'},
+        {'name': 'solicitarCita', 'returnType': 'void'},
+      ],
+    },
+    {
+      'name': 'Mascota',
+      'stereotype': '«entity»',
+      'attributes': [
+        {'name': 'id', 'type': 'Long', 'isPrimaryKey': true},
+        {'name': 'nombre', 'type': 'String'},
+        {'name': 'especie', 'type': 'String'},
+        {'name': 'raza', 'type': 'String'},
+        {'name': 'edad', 'type': 'Integer'},
+      ],
+      'methods': [
+        {'name': 'obtenerHistorial', 'returnType': 'void'},
+      ],
+    },
+    {
+      'name': 'Cita',
+      'stereotype': '«entity»',
+      'attributes': [
+        {'name': 'id', 'type': 'Long', 'isPrimaryKey': true},
+        {'name': 'fecha', 'type': 'LocalDate'},
+        {'name': 'hora', 'type': 'String'},
+        {'name': 'motivo', 'type': 'String'},
+        {'name': 'estado', 'type': 'String'},
+      ],
+      'methods': [
+        {'name': 'confirmar', 'returnType': 'void'},
+        {'name': 'cancelar', 'returnType': 'void'},
+      ],
+    },
+    {
+      'name': 'Medica',
+      'stereotype': '«entity»',
+      'attributes': [
+        {'name': 'id', 'type': 'Long', 'isPrimaryKey': true},
+        {'name': 'diagnostico', 'type': 'String'},
+        {'name': 'tratamiento', 'type': 'String'},
+        {'name': 'medicamentos', 'type': 'String'},
+      ],
+      'methods': [
+        {'name': 'emitirReceta', 'returnType': 'void'},
+      ],
+    },
+  ];
 }
+

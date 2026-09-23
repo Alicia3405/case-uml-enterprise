@@ -27,6 +27,7 @@ import { SpringBootGeneratorService } from '../../services/spring-boot-generator
 import { AuthSessionService } from '../../services/auth-session.service';
 import { ProjectWorkspaceService } from '../../services/project-workspace.service';
 import { CollaborationSocketService } from '../../services/collaboration-socket.service';
+import { NotificationPushService } from '../../services/notification-push.service';
 import { ElementLock, ProjectPermission, ProjectSummary } from '../../models/collaboration.models';
 import { copyToClipboard } from '../../utils/clipboard-helper';
 
@@ -54,8 +55,10 @@ export class UmlWorkspaceComponent {
   public projectService = inject(ProjectWorkspaceService);
   public collabSocket = inject(CollaborationSocketService);
   public generatorService = inject(SpringBootGeneratorService);
+  public notifService = inject(NotificationPushService);
 
   showProfileModal = signal<boolean>(false);
+  showNotificationsModal = signal<boolean>(false);
 
   @ViewChild('canvasContainer') canvasContainer!: ElementRef<HTMLDivElement>;
   @ViewChild('xmiFileInput') xmiFileInput!: ElementRef<HTMLInputElement>;
@@ -219,23 +222,58 @@ export class UmlWorkspaceComponent {
     if (!term) return all;
     return all.filter(u => 
       u.username.toLowerCase().includes(term) || 
-      u.nombreCompleto.toLowerCase().includes(term) || 
-      (u.departamento && u.departamento.toLowerCase().includes(term))
+      u.nombreCompleto.toLowerCase().includes(term)
     );
   });
 
   // Búsqueda en tiempo real de miembros del equipo en barra lateral
   memberSearchTerm = signal<string>('');
+  selectedUserToAdd = signal<string>('');
+  selectedRoleToAdd = signal<ProjectPermission>('EDITOR');
 
+  // Solo miembros activos asignados a este proyecto (Dueño + Colaboradores con EDITOR o VIEWER)
   filteredTeamMembers = computed(() => {
+    const proj = this.projectService.activeProject();
+    if (!proj) return [];
     const term = this.memberSearchTerm().trim().toLowerCase();
-    const users = this.authService.users();
-    if (!term) return users;
-    return users.filter(u => 
+    const allUsers = this.authService.users();
+
+    // Filtrar solo los usuarios que son el Dueño o están en la lista de colaboradores con rol activo
+    const team = allUsers.filter(u => {
+      if (proj.ownerId === u.id) return true;
+      return proj.colaboradores.some(c => c.userId === u.id && (c.permission === 'EDITOR' || c.permission === 'VIEWER'));
+    });
+
+    if (!term) return team;
+    return team.filter(u => 
       u.nombreCompleto.toLowerCase().includes(term) ||
-      u.username.toLowerCase().includes(term) ||
-      (u.departamento && u.departamento.toLowerCase().includes(term))
+      u.username.toLowerCase().includes(term)
     );
+  });
+
+  // Invitaciones pendientes para este proyecto activo
+  pendingProjectInvitations = computed(() => {
+    const projId = this.projectService.activeProjectId();
+    if (!projId) return [];
+    return this.notifService.getPendingInvitationsForProject(projId);
+  });
+
+  // Usuarios del sistema disponibles para ser asignados/invitados como colaboradores
+  availableUsersToAdd = computed(() => {
+    const proj = this.projectService.activeProject();
+    if (!proj) return [];
+    const allUsers = this.authService.users();
+    const pendingInvites = this.pendingProjectInvitations();
+    return allUsers.filter(u => {
+      // Excluir al dueño
+      if (proj.ownerId === u.id) return false;
+      // Excluir a los que ya son colaboradores activos (EDITOR o VIEWER)
+      const isAlreadyCollab = proj.colaboradores.some(c => c.userId === u.id && (c.permission === 'EDITOR' || c.permission === 'VIEWER'));
+      if (isAlreadyCollab) return false;
+      // Excluir a los que ya tienen una invitación pendiente
+      const hasPending = pendingInvites.some(inv => inv.targetUserId === u.id);
+      return !hasPending;
+    });
   });
 
   // Modales del sistema colaborativo y administración
@@ -2109,14 +2147,13 @@ export class UmlWorkspaceComponent {
     const res = this.authService.createUser({
       username: this.adminNewUsername(),
       nombreCompleto: this.adminNewFullName(),
-      password: this.adminNewInitialPassword(),
-      departamento: this.adminNewDepartment(),
-      rol: 'USUARIO'
+      password: this.adminNewInitialPassword()
     });
     if (res.success) {
       this.adminSuccessMsg.set(`Usuario "${this.adminNewFullName()}" creado con éxito.`);
       this.adminNewUsername.set('');
       this.adminNewFullName.set('');
+      this.adminNewInitialPassword.set('empresa2026');
     } else {
       this.adminErrorMsg.set(res.message);
     }
@@ -2134,6 +2171,60 @@ export class UmlWorkspaceComponent {
     this.projectService.updateCollaboratorPermission(projId, userId, perm);
     this.collabSocket.emitPermissionChange(userId, perm);
     this.notify('Permiso de colaborador actualizado.');
+  }
+
+  enviarInvitacionColaborador() {
+    const userId = this.selectedUserToAdd();
+    const role = this.selectedRoleToAdd() === 'VIEWER' ? 'VIEWER' : 'EDITOR';
+    if (!userId) {
+      this.notify('⚠️ Selecciona un usuario para invitar.');
+      return;
+    }
+    const proj = this.projectService.activeProject();
+    if (!proj) return;
+    const targetUser = this.authService.users().find(u => u.id === userId);
+    if (!targetUser) return;
+
+    const res = this.notifService.sendInvitation(
+      proj.id,
+      this.getProjectDisplayName(proj),
+      targetUser.id,
+      targetUser.username,
+      targetUser.nombreCompleto,
+      role
+    );
+
+    if (res.success) {
+      this.notify(res.message);
+      this.selectedUserToAdd.set('');
+    } else {
+      this.notify(res.message);
+    }
+  }
+
+  aceptarInvitacion(invitationId: string) {
+    const ok = this.notifService.acceptInvitation(invitationId);
+    if (ok) {
+      this.notify('✅ ¡Invitación aceptada! Ya eres colaborador del proyecto.');
+    }
+  }
+
+  rechazarInvitacion(invitationId: string) {
+    this.notifService.rejectInvitation(invitationId);
+    this.notify('Invitación rechazada.');
+  }
+
+  cancelarInvitacion(invitationId: string) {
+    this.notifService.cancelInvitation(invitationId);
+    this.notify('Invitación cancelada.');
+  }
+
+  removerColaborador(userId: string) {
+    const projId = this.projectService.activeProjectId();
+    this.projectService.updateCollaboratorPermission(projId, userId, 'NONE');
+    this.collabSocket.emitPermissionChange(userId, 'NONE');
+    const user = this.authService.users().find(u => u.id === userId);
+    this.notify(`Colaborador ${user?.nombreCompleto || ''} removido del proyecto.`);
   }
 
   toggleCollaboratorDownload(userId: string) {
