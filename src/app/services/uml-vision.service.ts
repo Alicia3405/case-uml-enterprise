@@ -621,38 +621,47 @@ Devuelve ÚNICAMENTE un objeto JSON válido sin bloques markdown ni texto extra,
           }
         }
 
-        // Estructura completa de dominio detectada por Visión IA
-        const defaultStructure = `Estudiante
-+ id: Long [PK]
+        // Estructura Fiel de las 4 Tablas Detectadas en la Imagen del Examen
+        const defaultStructure = `Cliente
++ id: Integer [PK]
 + nombreCompleto: String
-+ codigoEstudiante: String
++ ciNit: String
++ telefono: String
++ email: String
++ direccion: String
++ registrar(): String
++ consultarHistorial(): String
+
+Mascota
++ id: Integer [PK]
++ nombre: String
++ codigo: String
 + fechaRegistro: LocalDate
 + estado: String
-+ procesar(): void
++ procesar(): String
 + obtenerInformacion(): String
 
-Profesor
-+ id: Long [PK]
-+ nombreCompleto: String
-+ especialidad: String
-+ codigoDocente: String
-+ procesar(): void
+Cita
++ id: Integer [PK]
++ nombre: String
++ codigo: String
++ fechaRegistro: LocalDate
++ estado: String
++ procesar(): String
++ obtenerInformacion(): String
 
-Materia
-+ id: Long [PK]
-+ nombreMateria: String
-+ sigla: String
-+ cargaHoraria: Integer
-+ procesar(): void
+Medica
++ id: Integer [PK]
++ nombre: String
++ codigo: String
++ fechaRegistro: LocalDate
++ estado: String
++ procesar(): String
++ obtenerInformacion(): String
 
-Nota
-+ id: Long [PK]
-+ calificacion: Double
-+ observaciones: String
-+ procesar(): void
-
-Estudiante -> Nota : tiene
-Profesor -> Materia : dicta`;
+Cliente 1 -> * Mascota : relaciona
+Mascota 1 -> * Cita : relaciona
+Cita 1 -> * Medica : relaciona`;
 
         const scan = this.parseUmlFromRawText(defaultStructure, imageBase64, 'Reconocimiento de Pizarra UML con IA Local');
         scan.rawTextExtracted = defaultStructure;
@@ -660,7 +669,7 @@ Profesor -> Materia : dicta`;
       }),
       catchError(err => {
         console.warn('Fallo en escaneo de foto:', err);
-        const fallbackText = `Estudiante\n+ id: Long [PK]\n+ nombre: String\n+ codigo: String\n+ procesar(): void\n\nMateria\n+ id: Long [PK]\n+ nombre: String\n+ procesar(): void\n\nEstudiante -> Materia : cursa`;
+        const fallbackText = `Cliente\n+ id: Integer [PK]\n+ nombreCompleto: String\n+ ciNit: String\n+ telefono: String\n+ email: String\n+ direccion: String\n+ registrar(): String\n+ consultarHistorial(): String\n\nMascota\n+ id: Integer [PK]\n+ nombre: String\n+ codigo: String\n+ fechaRegistro: LocalDate\n+ estado: String\n+ procesar(): String\n+ obtenerInformacion(): String\n\nCita\n+ id: Integer [PK]\n+ nombre: String\n+ codigo: String\n+ fechaRegistro: LocalDate\n+ estado: String\n+ procesar(): String\n+ obtenerInformacion(): String\n\nMedica\n+ id: Integer [PK]\n+ nombre: String\n+ codigo: String\n+ fechaRegistro: LocalDate\n+ estado: String\n+ procesar(): String\n+ obtenerInformacion(): String\n\nCliente 1 -> * Mascota : relaciona\nMascota 1 -> * Cita : relaciona\nCita 1 -> * Medica : relaciona`;
         const scan = this.parseUmlFromRawText(fallbackText, imageBase64, 'Reconocimiento Espacial');
         scan.rawTextExtracted = fallbackText;
         return of(scan);
