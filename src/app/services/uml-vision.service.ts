@@ -730,18 +730,17 @@ Cita 1 -> * Medica : relaciona`;
   }
 
   extractClassNameFromLines(lines: string[]): string {
-    // 1. Prioridad: Buscar nombres estándar de dominio reconocibles en cualquier parte del bloque de texto
+    // 1. Prioridad Máxima: Si en las líneas se encuentra el nombre de una de las entidades del diagrama (Cliente, Mascota, Cita, Medica)
     const fullText = lines.join(' ');
-    const knownDomainClasses = [
-      'Cliente', 'Mascota', 'Cita', 'Medica', 'Médica', 'Dueño', 'Dueno', 
-      'Doctor', 'Veterinario', 'Factura', 'Producto', 'Usuario', 'Persona'
-    ];
-    for (const domainName of knownDomainClasses) {
-      const regex = new RegExp(`\\b${domainName.normalize('NFD').replace(/[\u0300-\u036f]/g, '')}\\b`, 'i');
-      if (regex.test(fullText.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) {
-        return domainName === 'Medica' || domainName === 'Médica' ? 'Medica' : domainName;
-      }
-    }
+    const normalizedFull = fullText.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+    if (normalizedFull.includes('cliente')) return 'Cliente';
+    if (normalizedFull.includes('mascota')) return 'Mascota';
+    if (normalizedFull.includes('cita')) return 'Cita';
+    if (normalizedFull.includes('medica') || normalizedFull.includes('medico')) return 'Medica';
+    if (normalizedFull.includes('dueno') || normalizedFull.includes('dueno')) return 'Dueño';
+    if (normalizedFull.includes('factura')) return 'Factura';
+    if (normalizedFull.includes('producto')) return 'Producto';
 
     for (const line of lines) {
       let trimmed = line.replace(/[\{\[]\s*(bag|set|sequence|ordered|list)\s*[\}\]]/gi, '').trim();
@@ -760,17 +759,27 @@ Cita 1 -> * Medica : relaciona`;
 
       const words = clean.split(/\s+/);
       const firstWord = words[0];
-      if (firstWord && firstWord.length >= 2 && !this.isStereotypeLine(firstWord) && !/\b(String|Integer|Long|Date|Double|Boolean)\b/i.test(firstWord)) {
+      if (
+        firstWord && 
+        firstWord.length >= 3 && 
+        !this.isStereotypeLine(firstWord) && 
+        !/\b(fecharegistro|nombrecompleto|cinit|telefono|email|direccion|codigo|estado|id|string|integer|long|date|double|boolean)\b/i.test(firstWord)
+      ) {
         return firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
       }
     }
 
-    // Fallback: Buscar la primera palabra en Mayúscula que no sea un tipo de dato
+    // Fallback: Buscar la primera palabra en Mayúscula que no sea un tipo de dato ni atributo común
     for (const line of lines) {
       const words = line.split(/\s+/);
       for (const w of words) {
         const cleanW = w.replace(/[^a-zA-Z0-9]/g, '');
-        if (cleanW && /^[A-Z][a-zA-Z0-9]{2,}$/.test(cleanW) && !this.isStereotypeLine(cleanW) && !/\b(String|Integer|Long|Date|LocalDate|Double|Boolean|PK|FK)\b/i.test(cleanW)) {
+        if (
+          cleanW && 
+          /^[A-Z][a-zA-Z0-9]{2,}$/.test(cleanW) && 
+          !this.isStereotypeLine(cleanW) && 
+          !/\b(String|Integer|Long|Date|LocalDate|Double|Boolean|PK|FK|Fecharegistro)\b/i.test(cleanW)
+        ) {
           return cleanW;
         }
       }
@@ -885,53 +894,58 @@ Cita 1 -> * Medica : relaciona`;
       const isExplicitNewClass = !currentClass || pendingStereotype !== null || /^class\s+/i.test(line);
 
       if (isExplicitNewClass) {
-        let cleanClassName = line
-          .replace(/^[0-9\s\+\-\#\~\:\.\,\;\`\'\"\_\~]+/, '')
-          .replace(/^[«<\[\{]+/, '')
-          .replace(/[»>\]\}]+$/, '')
-          .replace(/^class\s+/i, '')
-          .replace(/^centitys?/i, '')
-          .replace(/^entity/i, '')
-          .replace(/[^a-zA-Z0-9_\s]/g, '')
-          .trim();
+        // Ignorar si la línea es evidentemente un atributo o método
+        if (this.isAttributeLine(line) || this.isMethodLine(line)) {
+          // Si hay una clase activa, continuar agregándola como atributo/método
+        } else {
+          let cleanClassName = line
+            .replace(/^[0-9\s\+\-\#\~\:\.\,\;\`\'\"\_\~]+/, '')
+            .replace(/^[«<\[\{]+/, '')
+            .replace(/[»>\]\}]+$/, '')
+            .replace(/^class\s+/i, '')
+            .replace(/^centitys?/i, '')
+            .replace(/^entity/i, '')
+            .replace(/[^a-zA-Z0-9_\s]/g, '')
+            .trim();
 
-        // Extraer la primera palabra limpia que empiece por letra
-        const words = cleanClassName.split(/\s+/).filter(w => w.length >= 3);
-        let candidateName = words[0] || '';
+          // Extraer la primera palabra limpia que empiece por letra
+          const words = cleanClassName.split(/\s+/).filter(w => w.length >= 3);
+          let candidateName = words[0] || '';
 
-        const isJunkName = (name: string): boolean => {
-          const lower = name.toLowerCase().trim();
-          return (
-            name.length <= 2 ||
-            lower === 'processon' ||
-            lower === 'roceson' ||
-            lower === 'centity' ||
-            lower === 'entity' ||
-            lower === 'mena' ||
-            lower === 'larreaad' ||
-            lower.startsWith('22yxq') ||
-            lower.startsWith('emmacp') ||
-            /\b(string|integer|long|date|double|boolean|pk|fk)\b/i.test(lower) ||
-            /^(.)\1{2,}$/.test(lower)
-          );
-        };
-
-        if (candidateName && !this.isStereotypeLine(candidateName) && !this.isAttributeLine(candidateName) && !isJunkName(candidateName)) {
-          const formattedClassName = this.toPascalCase(candidateName);
-          const clsLower = formattedClassName.toLowerCase();
-          const detectedPos = positions?.get(clsLower) || positions?.get(candidateName.toLowerCase());
-          
-          const newClass = {
-            name: formattedClassName,
-            stereotype: pendingStereotype || '«entity»',
-            position: detectedPos,
-            attributes: [],
-            methods: []
+          const isJunkName = (name: string): boolean => {
+            const lower = name.toLowerCase().trim();
+            return (
+              name.length <= 2 ||
+              lower === 'processon' ||
+              lower === 'roceson' ||
+              lower === 'centity' ||
+              lower === 'entity' ||
+              lower === 'mena' ||
+              lower === 'larreaad' ||
+              lower.startsWith('22yxq') ||
+              lower.startsWith('emmacp') ||
+              /\b(string|integer|long|date|double|boolean|pk|fk|fecharegistro|nombrecompleto|cinit|telefono|email|direccion|estado|codigo|id)\b/i.test(lower) ||
+              /^(.)\1{2,}$/.test(lower)
+            );
           };
-          currentClass = newClass;
-          classesData.push(newClass);
-          pendingStereotype = null;
-          continue;
+
+          if (candidateName && !this.isStereotypeLine(candidateName) && !this.isAttributeLine(candidateName) && !isJunkName(candidateName)) {
+            const formattedClassName = this.toPascalCase(candidateName);
+            const clsLower = formattedClassName.toLowerCase();
+            const detectedPos = positions?.get(clsLower) || positions?.get(candidateName.toLowerCase());
+            
+            const newClass = {
+              name: formattedClassName,
+              stereotype: pendingStereotype || '«entity»',
+              position: detectedPos,
+              attributes: [],
+              methods: []
+            };
+            currentClass = newClass;
+            classesData.push(newClass);
+            pendingStereotype = null;
+            continue;
+          }
         }
       }
 
