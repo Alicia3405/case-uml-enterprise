@@ -240,14 +240,14 @@ export class UmlVisionService {
 
           // Criterios espaciales adaptativos proporcionales a la altura de la fuente:
           // a) En la misma línea horizontal con poca distancia (mismo título o atributo)
-          const isSameLine = dy <= avgWordH * 0.7 && dx <= avgWordW * 2.8;
+          const isSameLine = dy <= avgWordH * 0.6 && dx <= avgWordW * 2.2;
           // b) Renglones consecutivos dentro del rectángulo de la misma clase
-          const isAdjacentLine = (xOverlap > Math.min(minW * 0.4, 15) || dx <= avgWordW * 1.5) && dy <= avgWordH * 2.2;
+          const isAdjacentLine = (xOverlap > Math.min(minW * 0.5, 20) || dx <= avgWordW * 1.2) && dy <= avgWordH * 1.8;
           // c) Bloque interno entre atributos y métodos de una misma caja
-          const isInternalBlock = xOverlap > Math.min(minW * 0.5, 25) && dy <= avgWordH * 2.8;
+          const isInternalBlock = xOverlap > Math.min(minW * 0.6, 30) && dy <= avgWordH * 2.2;
 
-          const maxAllowedWidth = Math.max(imgWidth * 0.38, avgWordW * 28, 380);
-          const maxAllowedHeight = Math.max(imgHeight * 0.60, avgWordH * 35, 600);
+          const maxAllowedWidth = Math.max(imgWidth * 0.32, avgWordW * 22, 320);
+          const maxAllowedHeight = Math.max(imgHeight * 0.45, avgWordH * 25, 450);
 
           if ((isSameLine || isAdjacentLine || isInternalBlock) && combinedWidth <= maxAllowedWidth && combinedHeight <= maxAllowedHeight) {
             c1.words.push(...c2.words);
@@ -730,6 +730,19 @@ Cita 1 -> * Medica : relaciona`;
   }
 
   extractClassNameFromLines(lines: string[]): string {
+    // 1. Prioridad: Buscar nombres estándar de dominio reconocibles en cualquier parte del bloque de texto
+    const fullText = lines.join(' ');
+    const knownDomainClasses = [
+      'Cliente', 'Mascota', 'Cita', 'Medica', 'Médica', 'Dueño', 'Dueno', 
+      'Doctor', 'Veterinario', 'Factura', 'Producto', 'Usuario', 'Persona'
+    ];
+    for (const domainName of knownDomainClasses) {
+      const regex = new RegExp(`\\b${domainName.normalize('NFD').replace(/[\u0300-\u036f]/g, '')}\\b`, 'i');
+      if (regex.test(fullText.normalize('NFD').replace(/[\u0300-\u036f]/g, ''))) {
+        return domainName === 'Medica' || domainName === 'Médica' ? 'Medica' : domainName;
+      }
+    }
+
     for (const line of lines) {
       let trimmed = line.replace(/[\{\[]\s*(bag|set|sequence|ordered|list)\s*[\}\]]/gi, '').trim();
       if (!trimmed || this.isStereotypeLine(trimmed)) continue;
