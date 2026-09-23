@@ -21,6 +21,8 @@ export class NotificationPushService {
   // Canal de difusión en tiempo real entre pestañas y ventanas
   private channel: BroadcastChannel | null = null;
   private audioCtx: AudioContext | null = null;
+  private syncPollTimer: any = null;
+  private lastNotifiedId: string | null = null;
 
   // Invitaciones pendientes dirigidas al usuario autenticado actual
   pendingInvitationsForCurrentUser = computed(() => {
@@ -38,6 +40,13 @@ export class NotificationPushService {
     this.initInvitations();
     this.initBroadcastChannel();
     this.requestBrowserNotificationPermission();
+    this.startBackgroundSync();
+  }
+
+  private getBackendUrl(): string {
+    if (typeof window === 'undefined') return 'http://localhost:8080';
+    const host = window.location.hostname || 'localhost';
+    return `${window.location.protocol}//${host}:8080`;
   }
 
   public initInvitations(): void {
@@ -49,17 +58,69 @@ export class NotificationPushService {
       console.error(e);
     }
     this.invitations.set(stored);
+    this.fetchInvitationsFromBackend();
+  }
+
+  private startBackgroundSync(): void {
+    if (typeof window === 'undefined') return;
+    if (this.syncPollTimer) clearInterval(this.syncPollTimer);
+    // Polling ligero cada 2.5 segundos para sincronización entre diferentes dispositivos y navegadores
+    this.syncPollTimer = setInterval(() => {
+      this.fetchInvitationsFromBackend();
+    }, 2500);
+  }
+
+  public fetchInvitationsFromBackend(): void {
+    if (typeof window === 'undefined') return;
+    const url = `${this.getBackendUrl()}/api/v1/invitaciones`;
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const backendList: ProjectInvitation[] = data?.datos || (Array.isArray(data) ? data : []);
+        if (Array.isArray(backendList)) {
+          // Fusionar con invitaciones locales
+          const merged = [...backendList];
+          for (const localInv of this.invitations()) {
+            if (!merged.some(m => m.id === localInv.id)) {
+              merged.push(localInv);
+            }
+          }
+          this.invitations.set(merged);
+          this.persistInvitations(merged);
+          this.verifyNewPendingToast();
+        }
+      })
+      .catch(() => {});
+  }
+
+  private verifyNewPendingToast(): void {
+    const user = this.authService.currentUser();
+    if (!user) return;
+    const pending = this.pendingInvitationsForCurrentUser();
+    if (pending.length > 0) {
+      const latest = pending[0];
+      if (this.lastNotifiedId !== latest.id) {
+        this.lastNotifiedId = latest.id;
+        this.activePushToast.set(latest);
+        this.triggerNativePushNotification(
+          '🔔 Nueva Solicitud de Colaboración',
+          `${latest.senderName} te ha invitado a colaborar en "${latest.projectName}" como ${latest.role === 'EDITOR' ? 'Editor' : 'Lector'}.`,
+          latest.id
+        );
+      }
+    } else {
+      this.lastNotifiedId = null;
+    }
   }
 
   public checkPendingInvitationsOnLogin(): void {
-    this.initInvitations();
+    this.fetchInvitationsFromBackend();
     const user = this.authService.currentUser();
     if (!user) return;
-    const pending = this.invitations().filter(inv => 
-      inv.targetUserId === user.id && inv.status === 'PENDING'
-    );
+    const pending = this.pendingInvitationsForCurrentUser();
     if (pending.length > 0) {
       const latest = pending[0];
+      this.lastNotifiedId = latest.id;
       this.activePushToast.set(latest);
       this.triggerNativePushNotification(
         '🔔 Solicitud de Colaboración Pendiente',
@@ -87,7 +148,7 @@ export class NotificationPushService {
         } else if (payload?.type === 'INVITATION_ACCEPTED') {
           this.handleInvitationAcceptedByOther(payload.invitation);
         } else if (payload?.type === 'SYNC_INVITATIONS') {
-          this.initInvitations();
+          this.fetchInvitationsFromBackend();
         }
       };
     }
@@ -157,7 +218,7 @@ export class NotificationPushService {
       osc2.frequency.setValueAtTime(440, now);
       osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.25); // Re 6
 
-      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.setValueAtTime(0.25, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
 
       osc1.connect(gain);
@@ -172,9 +233,10 @@ export class NotificationPushService {
   }
 
   private handleIncomingInvitation(invitation: ProjectInvitation): void {
-    this.initInvitations();
+    this.fetchInvitationsFromBackend();
     const currentUser = this.authService.currentUser();
     if (currentUser && invitation.targetUserId === currentUser.id && invitation.status === 'PENDING') {
+      this.lastNotifiedId = invitation.id;
       this.activePushToast.set(invitation);
       this.triggerNativePushNotification(
         '🔔 Invitación a Colaborar - CASE UML',
@@ -185,7 +247,7 @@ export class NotificationPushService {
   }
 
   private handleInvitationAcceptedByOther(invitation: ProjectInvitation): void {
-    this.initInvitations();
+    this.fetchInvitationsFromBackend();
     const currentUser = this.authService.currentUser();
     if (currentUser && invitation.senderId === currentUser.id) {
       this.triggerNativePushNotification(
@@ -197,7 +259,7 @@ export class NotificationPushService {
   }
 
   /**
-   * Enviar invitación formal de colaboración a un usuario del sistema
+   * Enviar invitación formal de colaboración a un usuario del sistema (Sincronizado con Backend y WebSocket)
    */
   sendInvitation(
     projectId: string,
@@ -234,11 +296,18 @@ export class NotificationPushService {
       createdAt: new Date().toISOString()
     };
 
-    const updated = [newInvitation, ...this.invitations()];
+    const updated = [newInvitation, ...this.invitations().filter(i => i.id !== newInvitation.id)];
     this.invitations.set(updated);
     this.persistInvitations(updated);
 
-    // Difundir evento de Notificación Push a otras pestañas/dispositivos
+    // 1. Enviar al Backend REST (Persistencia centralizada para cualquier dispositivo en red)
+    fetch(`${this.getBackendUrl()}/api/v1/invitaciones`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newInvitation)
+    }).catch(err => console.warn('Error enviando invitacion al backend:', err));
+
+    // 2. Difundir por BroadcastChannel (0ms en el mismo equipo)
     this.channel?.postMessage({
       type: 'NEW_INVITATION',
       invitation: newInvitation
@@ -255,14 +324,14 @@ export class NotificationPushService {
    */
   acceptInvitation(invitationId: string): boolean {
     const inv = this.invitations().find(i => i.id === invitationId);
-    if (!inv || inv.status !== 'PENDING') return false;
+    if (!inv) return false;
 
-    // 1. Asignar el rol en el proyecto activo
+    // 1. Asignar el rol en el proyecto activo y en el catálogo global de proyectos
     this.projectService.updateCollaboratorPermission(inv.projectId, inv.targetUserId, inv.role);
 
     // 2. Marcar invitación como aceptada
     const updated = this.invitations().map(i => 
-      i.id === invitationId ? { ...i, status: 'ACCEPTED' as const } : i
+      i.id === invitationId ? { ...i, status: 'ACCEPTED' as const, acceptedAt: new Date().toISOString() } : i
     );
     this.invitations.set(updated);
     this.persistInvitations(updated);
@@ -272,7 +341,16 @@ export class NotificationPushService {
       this.activePushToast.set(null);
     }
 
-    // 3. Notificar al Propietario del proyecto que la invitación fue aceptada
+    // 3. Notificar al backend REST
+    fetch(`${this.getBackendUrl()}/api/v1/invitaciones/aceptar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invitationId, id: invitationId })
+    }).then(() => {
+      this.projectService.fetchProjectsFromBackend();
+    }).catch(err => console.warn('Error aceptando invitacion en backend:', err));
+
+    // 4. Notificar por BroadcastChannel
     this.channel?.postMessage({
       type: 'INVITATION_ACCEPTED',
       invitation: inv
@@ -304,6 +382,12 @@ export class NotificationPushService {
       this.activePushToast.set(null);
     }
 
+    fetch(`${this.getBackendUrl()}/api/v1/invitaciones/rechazar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invitationId, id: invitationId })
+    }).catch(() => {});
+
     this.channel?.postMessage({ type: 'SYNC_INVITATIONS' });
     return true;
   }
@@ -315,6 +399,13 @@ export class NotificationPushService {
     const updated = this.invitations().filter(i => i.id !== invitationId);
     this.invitations.set(updated);
     this.persistInvitations(updated);
+
+    fetch(`${this.getBackendUrl()}/api/v1/invitaciones/rechazar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invitationId, id: invitationId })
+    }).catch(() => {});
+
     this.channel?.postMessage({ type: 'SYNC_INVITATIONS' });
   }
 

@@ -757,7 +757,103 @@ const server = http.createServer(async (req, res) => {
       ]
     };
 
-    return sendJson(res, 200, wrapResponse(examWhiteboardData, 'Pizarra digitalizada con Motor de Visión UML'));
+  // ============================================================================
+  // GESTIÓN GLOBAL DE INVITACIONES Y PROYECTOS COLABORATIVOS (ENTRE DISPOSITIVOS)
+  // ============================================================================
+
+  // Obtener todas las invitaciones
+  if ((pathname === '/api/invitaciones' || pathname === '/api/v1/invitaciones') && method === 'GET') {
+    return sendJson(res, 200, wrapResponse(enterpriseInvitations));
+  }
+
+  // Crear y emitir nueva invitación
+  if ((pathname === '/api/invitaciones' || pathname === '/api/v1/invitaciones') && method === 'POST') {
+    const body = await parseBody(req);
+    const newInv = {
+      id: body.id || ('inv_' + Date.now()),
+      projectId: body.projectId,
+      projectName: body.projectName,
+      senderId: body.senderId,
+      senderName: body.senderName,
+      targetUserId: body.targetUserId,
+      targetUsername: body.targetUsername,
+      targetFullName: body.targetFullName,
+      role: body.role || 'EDITOR',
+      status: 'PENDING',
+      createdAt: body.createdAt || new Date().toISOString()
+    };
+
+    enterpriseInvitations = [newInv, ...enterpriseInvitations.filter(i => i.id !== newInv.id)];
+    broadcastToAllClients({ type: 'NEW_INVITATION', invitation: newInv });
+    broadcastToAllClients({ type: 'SYNC_INVITATIONS', invitations: enterpriseInvitations });
+    return sendJson(res, 200, wrapResponse(newInv, 'Invitación registrada y transmitida con éxito'));
+  }
+
+  // Aceptar invitación formal
+  if ((pathname === '/api/invitaciones/aceptar' || pathname === '/api/v1/invitaciones/aceptar') && method === 'POST') {
+    const body = await parseBody(req);
+    const invId = body.invitationId || body.id;
+    const inv = enterpriseInvitations.find(i => i.id === invId);
+    if (inv) {
+      inv.status = 'ACCEPTED';
+      inv.acceptedAt = new Date().toISOString();
+
+      // Agregar colaborador al proyecto en el backend
+      const proj = enterpriseProjects.find(p => p.id === inv.projectId);
+      if (proj) {
+        if (!proj.colaboradores) proj.colaboradores = [];
+        const idx = proj.colaboradores.findIndex(c => c.userId === inv.targetUserId);
+        if (idx >= 0) {
+          proj.colaboradores[idx].permission = inv.role;
+        } else {
+          proj.colaboradores.push({
+            userId: inv.targetUserId,
+            username: inv.targetUsername,
+            nombreCompleto: inv.targetFullName,
+            color: '#0ea5e9',
+            permission: inv.role
+          });
+        }
+        proj.updatedAt = new Date().toISOString();
+      }
+
+      broadcastToAllClients({ type: 'INVITATION_ACCEPTED', invitation: inv });
+      broadcastToAllClients({ type: 'SYNC_INVITATIONS', invitations: enterpriseInvitations });
+      broadcastToAllClients({ type: 'PROJECTS_SYNCED', projects: enterpriseProjects });
+      return sendJson(res, 200, wrapResponse({ invitation: inv, projects: enterpriseProjects }, 'Invitación aceptada y colaborador registrado'));
+    }
+    return sendJson(res, 404, wrapResponse(null, 'Invitación no encontrada', false));
+  }
+
+  // Rechazar o cancelar invitación
+  if ((pathname === '/api/invitaciones/rechazar' || pathname === '/api/v1/invitaciones/rechazar') && method === 'POST') {
+    const body = await parseBody(req);
+    const invId = body.invitationId || body.id;
+    enterpriseInvitations = enterpriseInvitations.filter(i => i.id !== invId);
+    broadcastToAllClients({ type: 'SYNC_INVITATIONS', invitations: enterpriseInvitations });
+    return sendJson(res, 200, wrapResponse(null, 'Invitación cancelada'));
+  }
+
+  // Obtener catálogo de proyectos sincronizados
+  if ((pathname === '/api/proyectos' || pathname === '/api/v1/proyectos') && method === 'GET') {
+    return sendJson(res, 200, wrapResponse(enterpriseProjects));
+  }
+
+  // Guardar o actualizar proyectos sincronizados
+  if ((pathname === '/api/proyectos' || pathname === '/api/v1/proyectos') && method === 'POST') {
+    const body = await parseBody(req);
+    if (Array.isArray(body)) {
+      enterpriseProjects = body;
+    } else if (body && body.id) {
+      const idx = enterpriseProjects.findIndex(p => p.id === body.id);
+      if (idx >= 0) {
+        enterpriseProjects[idx] = { ...enterpriseProjects[idx], ...body, updatedAt: new Date().toISOString() };
+      } else {
+        enterpriseProjects.unshift(body);
+      }
+    }
+    broadcastToAllClients({ type: 'PROJECTS_SYNCED', projects: enterpriseProjects });
+    return sendJson(res, 200, wrapResponse(enterpriseProjects, 'Proyectos actualizados'));
   }
 
   // Si no coincide, respuesta genérica exitosa
@@ -769,10 +865,57 @@ const server = http.createServer(async (req, res) => {
 // ============================================================================
 const crypto = require('crypto');
 
+// Memoria y persistencia de Invitaciones y Proyectos de la Organización
+let enterpriseInvitations = [];
+let enterpriseProjects = [
+  {
+    id: 'proj_salud_2026',
+    name: 'Sistema de Gestión de Salud Hospitalaria',
+    description: 'Modelo conceptual de datos UML 2.5 para consultas, médicos y pacientes.',
+    ownerId: 'usr_carlos',
+    ownerName: 'Ing. Carlos Mendoza',
+    colaboradores: [
+      { userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', color: '#f97316', permission: 'EDITOR' },
+      { userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', color: '#10b981', permission: 'VIEWER' }
+    ],
+    totalClases: 4,
+    totalRelaciones: 3,
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'proj_ecommerce_2026',
+    name: 'Plataforma de Facturación y Pedidos',
+    description: 'Diagrama de clases para el módulo de pagos y comprobantes fiscales.',
+    ownerId: 'usr_carlos',
+    ownerName: 'Ing. Carlos Mendoza',
+    colaboradores: [
+      { userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', color: '#f97316', permission: 'VIEWER' }
+    ],
+    totalClases: 5,
+    totalRelaciones: 4,
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
 // projectRooms: Map<projectId, Set<{ socket, userId, user }>>
 const projectRooms = new Map();
 // projectLocks: Map<projectId, Map<elementId, lockData>>
 const projectLocks = new Map();
+
+function broadcastToAllClients(payload) {
+  const frame = encodeWsFrame(JSON.stringify(payload));
+  for (const sockets of projectRooms.values()) {
+    for (const client of sockets) {
+      if (!client.socket.destroyed) {
+        try {
+          client.socket.write(frame);
+        } catch (e) {}
+      }
+    }
+  }
+}
 
 function getRoomSockets(projectId) {
   if (!projectRooms.has(projectId)) {
@@ -991,6 +1134,13 @@ function handleWsMessage(msg, client) {
     case 'AUDIT_EVENT':
     case 'PERMISSION_CHANGED':
       broadcastToRoom(projectId, msg, client.socket);
+      break;
+
+    case 'NEW_INVITATION':
+    case 'INVITATION_ACCEPTED':
+    case 'SYNC_INVITATIONS':
+    case 'PROJECTS_SYNCED':
+      broadcastToAllClients(msg);
       break;
   }
 }

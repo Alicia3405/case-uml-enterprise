@@ -116,9 +116,47 @@ export class ProjectWorkspaceService {
 
   projects = signal<ProjectSummary[]>([]);
   activeProjectId = signal<string>('proj_salud_2026');
+  private syncTimer: any = null;
 
   constructor() {
     this.initProjects();
+    this.startBackgroundSync();
+  }
+
+  private getBackendUrl(): string {
+    if (typeof window === 'undefined') return 'http://localhost:8080';
+    const host = window.location.hostname || 'localhost';
+    return `${window.location.protocol}//${host}:8080`;
+  }
+
+  private startBackgroundSync(): void {
+    if (typeof window === 'undefined') return;
+    if (this.syncTimer) clearInterval(this.syncTimer);
+    this.syncTimer = setInterval(() => {
+      this.fetchProjectsFromBackend();
+    }, 2500);
+  }
+
+  public fetchProjectsFromBackend(): void {
+    if (typeof window === 'undefined') return;
+    const url = `${this.getBackendUrl()}/api/v1/proyectos`;
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const backendProjects: ProjectSummary[] = data?.datos || (Array.isArray(data) ? data : []);
+        if (Array.isArray(backendProjects) && backendProjects.length > 0) {
+          // Fusionar con proyectos locales
+          const merged = [...backendProjects];
+          for (const localP of this.projects()) {
+            if (!merged.some(m => m.id === localP.id)) {
+              merged.push(localP);
+            }
+          }
+          this.projects.set(merged);
+          this.persistProjects(merged);
+        }
+      })
+      .catch(() => {});
   }
 
   private initProjects(): void {
@@ -144,7 +182,6 @@ export class ProjectWorkspaceService {
           let updatedName = p.name;
           if (diag.name && typeof diag.name === 'string' && diag.name.trim()) {
             const cleanDiagName = diag.name.trim();
-            // Si el catálogo tiene nombre genérico o difiere del diagrama editado por el usuario
             if (p.name === 'Proyecto' || p.name === 'Nuevo Proyecto UML' || cleanDiagName !== p.name) {
               updatedName = cleanDiagName;
               hasChanges = true;
@@ -170,6 +207,7 @@ export class ProjectWorkspaceService {
       this.persistProjects(stored);
     }
     this.projects.set(stored);
+    this.fetchProjectsFromBackend();
   }
 
   private persistProjects(list: ProjectSummary[]): void {
@@ -178,6 +216,15 @@ export class ProjectWorkspaceService {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  private pushProjectsToBackend(list: ProjectSummary[]): void {
+    if (typeof window === 'undefined') return;
+    fetch(`${this.getBackendUrl()}/api/v1/proyectos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(list)
+    }).catch(() => {});
   }
 
   getActiveProject(): ProjectSummary | undefined {
@@ -212,6 +259,7 @@ export class ProjectWorkspaceService {
     const updated = [newProj, ...this.projects()];
     this.projects.set(updated);
     this.persistProjects(updated);
+    this.pushProjectsToBackend(updated);
     this.selectProject(newProj.id);
     return newProj;
   }
@@ -259,15 +307,20 @@ export class ProjectWorkspaceService {
     const project = this.projects().find(p => p.id === projectId);
     if (!project) return false;
 
-    // Solo el Owner puede delegar permisos
+    // Solo el Owner o Admin puede delegar permisos
     if (project.ownerId !== currentUser.id && currentUser.rol !== 'ADMINISTRADOR') {
-      return false;
+      // Si el usuario actual está aceptando su propia invitación, permitir registrarse
+      if (currentUser.id !== targetUserId) {
+        return false;
+      }
     }
 
     const targetUser = this.authService.users().find(u => u.id === targetUserId);
-    if (!targetUser) return false;
+    const targetName = targetUser?.nombreCompleto || targetUserId;
+    const targetUsername = targetUser?.username || targetUserId;
+    const targetColor = targetUser?.color || '#0ea5e9';
 
-    let updatedColabs = [...project.colaboradores];
+    let updatedColabs = [...(project.colaboradores || [])];
     const existingIdx = updatedColabs.findIndex(c => c.userId === targetUserId);
 
     if (newPermission === 'NONE') {
@@ -278,10 +331,10 @@ export class ProjectWorkspaceService {
         updatedColabs[existingIdx] = { ...updatedColabs[existingIdx], permission: newPermission };
       } else {
         updatedColabs.push({
-          userId: targetUser.id,
-          username: targetUser.username,
-          nombreCompleto: targetUser.nombreCompleto,
-          color: targetUser.color,
+          userId: targetUserId,
+          username: targetUsername,
+          nombreCompleto: targetName,
+          color: targetColor,
           permission: newPermission
         });
       }
@@ -300,6 +353,7 @@ export class ProjectWorkspaceService {
 
     this.projects.set(updatedProjects);
     this.persistProjects(updatedProjects);
+    this.pushProjectsToBackend(updatedProjects);
     return true;
   }
 
@@ -334,7 +388,6 @@ export class ProjectWorkspaceService {
     const project = this.projects().find(p => p.id === projectId);
     if (!project) return false;
 
-    // Solo el Dueño del diagrama puede otorgar o revocar permiso de descarga
     if (project.ownerId !== currentUser.id && currentUser.rol !== 'ADMINISTRADOR') {
       return false;
     }
@@ -362,9 +415,9 @@ export class ProjectWorkspaceService {
 
     this.projects.set(updatedProjects);
     this.persistProjects(updatedProjects);
+    this.pushProjectsToBackend(updatedProjects);
     return true;
   }
-
 
   /**
    * Actualiza el conteo de clases, relaciones y el nombre de un proyecto específico
@@ -384,6 +437,7 @@ export class ProjectWorkspaceService {
     });
     this.projects.set(updated);
     this.persistProjects(updated);
+    this.pushProjectsToBackend(updated);
   }
 
   /**
@@ -404,6 +458,7 @@ export class ProjectWorkspaceService {
     });
     this.projects.set(updated);
     this.persistProjects(updated);
+    this.pushProjectsToBackend(updated);
   }
 
   /**
