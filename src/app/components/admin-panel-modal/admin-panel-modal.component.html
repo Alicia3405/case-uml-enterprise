@@ -139,19 +139,18 @@
               <div class="p-3 flex items-center justify-between hover:bg-slate-800/30 transition">
                 <div class="flex items-center space-x-3">
                   <div 
-                    class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shadow-sm"
+                    class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shadow-sm flex-shrink-0"
                     [style.background-color]="user.color">
                     {{ user.username.substring(0,1).toUpperCase() }}
                   </div>
-                    <div class="flex items-center space-x-2">
-                      <span class="font-bold text-white">{{ user.nombreCompleto }}</span>
-                      <span class="text-[10px] text-slate-400 font-mono">(@{{ user.username }})</span>
-                      @if (user.rol === 'ADMINISTRADOR') {
-                        <span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
-                          ADMIN
-                        </span>
-                      }
-                    </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="font-bold text-white">{{ user.nombreCompleto }}</span>
+                    <span class="text-[10px] text-slate-400 font-mono">(@{{ user.username }})</span>
+                    @if (user.rol === 'ADMINISTRADOR') {
+                      <span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
+                        ADMIN
+                      </span>
+                    }
                   </div>
                 </div>
 
