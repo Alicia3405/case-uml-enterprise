@@ -732,10 +732,11 @@ Cita 1 -> * Medica : relaciona`;
   extractClassNameFromLines(lines: string[]): string {
     for (const line of lines) {
       let trimmed = line.replace(/[\{\[]\s*(bag|set|sequence|ordered|list)\s*[\}\]]/gi, '').trim();
-      if (this.isStereotypeLine(trimmed)) continue;
+      if (!trimmed || this.isStereotypeLine(trimmed)) continue;
       if (this.isAttributeLine(trimmed) || this.isMethodLine(trimmed)) continue;
 
       let clean = trimmed
+        .replace(/^[0-9\s]+/, '')
         .replace(/^[«<\[\{]+/, '')
         .replace(/[»>\]\}]+$/, '')
         .replace(/^class\s+/i, '')
@@ -744,8 +745,21 @@ Cita 1 -> * Medica : relaciona`;
         .replace(/[^a-zA-Z0-9_]/g, '')
         .trim();
 
-      if (clean && clean.length >= 2 && !this.isStereotypeLine(clean)) {
-        return clean.charAt(0).toUpperCase() + clean.slice(1);
+      const words = clean.split(/\s+/);
+      const firstWord = words[0];
+      if (firstWord && firstWord.length >= 2 && !this.isStereotypeLine(firstWord) && !/\b(String|Integer|Long|Date|Double|Boolean)\b/i.test(firstWord)) {
+        return firstWord.charAt(0).toUpperCase() + firstWord.slice(1);
+      }
+    }
+
+    // Fallback: Buscar la primera palabra en Mayúscula que no sea un tipo de dato
+    for (const line of lines) {
+      const words = line.split(/\s+/);
+      for (const w of words) {
+        const cleanW = w.replace(/[^a-zA-Z0-9]/g, '');
+        if (cleanW && /^[A-Z][a-zA-Z0-9]{2,}$/.test(cleanW) && !this.isStereotypeLine(cleanW) && !/\b(String|Integer|Long|Date|LocalDate|Double|Boolean|PK|FK)\b/i.test(cleanW)) {
+          return cleanW;
+        }
       }
     }
     return '';
@@ -1071,7 +1085,7 @@ Cita 1 -> * Medica : relaciona`;
       const col = index % cols;
       const row = Math.floor(index / cols);
 
-      // Si las posiciones del scanner están encimadas o son nulas, asignar la cuadrícula limpia
+      // Asignar posiciones en cuadrícula limpia 2x2 para evitar solapamientos
       const calculatedX = startX + col * colSpacing;
       const calculatedY = startY + row * rowSpacing;
 
@@ -1083,8 +1097,8 @@ Cita 1 -> * Medica : relaciona`;
         width: 250,
         height: 200,
         position: {
-          x: (c.position?.x && c.position.x > 10) ? Math.max(40, Math.round(c.position.x)) : calculatedX,
-          y: (c.position?.y && c.position.y > 10) ? Math.max(40, Math.round(c.position.y)) : calculatedY
+          x: calculatedX,
+          y: calculatedY
         },
         attributes: (c.attributes || []).map((a: any, aIdx: number) => ({
           id: `attr_${classId}_${aIdx}`,
