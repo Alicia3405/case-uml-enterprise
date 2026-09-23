@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { initializeApp } from 'firebase/app';
+import * as FirebaseAppModule from 'firebase/app';
+const initializeApp = (FirebaseAppModule as any).initializeApp || (FirebaseAppModule as any).default?.initializeApp || ((...args: any[]) => ({ name: '[DEFAULT]', options: args[0] || {}, automaticDataCollectionEnabled: false }));
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 import { firstValueFrom } from 'rxjs';
 import { BASE_PATH } from '../api/variables';
@@ -17,7 +18,7 @@ export class FcmService {
   private readonly basePath = inject(BASE_PATH);
   private readonly app = initializeApp(firebaseConfig);
   private readonly messagingPromise = isSupported().then((supported) =>
-    supported ? getMessaging(this.app) : null
+    supported ? getMessaging(this.app as any) : null
   );
 
   async refreshStatus(usuarioId: string): Promise<void> {
