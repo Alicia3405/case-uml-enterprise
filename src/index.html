@@ -6,9 +6,15 @@
   <base href="/">
   <!-- Dynamic Environment Variables Config -->
   <script>
-    window.__env = {
-      apiUrl: "http://localhost:8080"
-    };
+    (function() {
+      var host = window.location.hostname || 'localhost';
+      var proto = window.location.protocol || 'http:';
+      var wsProto = proto === 'https:' ? 'wss:' : 'ws:';
+      window.__env = {
+        apiUrl: proto + '//' + host + ':8080',
+        wsUrl: wsProto + '//' + host + ':8080/ws/uml'
+      };
+    })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">

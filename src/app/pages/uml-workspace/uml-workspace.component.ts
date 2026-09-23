@@ -151,35 +151,53 @@ export class UmlWorkspaceComponent {
   myProjects = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return [];
-    const uId = (user.id || '').toLowerCase();
-    const uName = (user.username || '').toLowerCase();
+    const uId = (user.id || '').toLowerCase().trim();
+    const uName = (user.username || '').toLowerCase().trim();
     const usrPrefixed = ('usr_' + uName);
 
     return this.projectService.projects().filter(p => {
-      const owner = (p.ownerId || '').toLowerCase();
-      return owner === uId || owner === uName || owner === usrPrefixed || ('usr_' + owner) === uId;
+      const owner = (p.ownerId || '').toLowerCase().trim();
+      return owner === uId || 
+             owner === uName || 
+             owner === usrPrefixed || 
+             ('usr_' + owner) === uId ||
+             (p.ownerName && user.nombreCompleto && p.ownerName.toLowerCase().trim() === user.nombreCompleto.toLowerCase().trim());
     });
   });
 
   sharedProjects = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return [];
-    const uId = (user.id || '').toLowerCase();
-    const uName = (user.username || '').toLowerCase();
+    const uId = (user.id || '').toLowerCase().trim();
+    const uName = (user.username || '').toLowerCase().trim();
     const usrPrefixed = ('usr_' + uName);
 
     return this.projectService.projects().filter(p => {
-      const owner = (p.ownerId || '').toLowerCase();
-      const isOwner = owner === uId || owner === uName || owner === usrPrefixed || ('usr_' + owner) === uId;
+      const owner = (p.ownerId || '').toLowerCase().trim();
+      const isOwner = owner === uId || 
+                      owner === uName || 
+                      owner === usrPrefixed || 
+                      ('usr_' + owner) === uId ||
+                      (p.ownerName && user.nombreCompleto && p.ownerName.toLowerCase().trim() === user.nombreCompleto.toLowerCase().trim());
       if (isOwner) return false;
 
       if (!p.colaboradores || !Array.isArray(p.colaboradores)) return false;
 
       return p.colaboradores.some(c => {
-        const cId = (c.userId || '').toLowerCase();
-        const cUsername = (c.username || '').toLowerCase();
-        const matchesUser = cId === uId || cId === uName || cId === usrPrefixed ||
-                            cUsername === uName || cUsername === uId;
+        const cId = (c.userId || '').toLowerCase().trim();
+        const cUsername = (c.username || '').toLowerCase().trim();
+        const cName = (c.nombreCompleto || '').toLowerCase().trim();
+        const uFullName = (user.nombreCompleto || '').toLowerCase().trim();
+
+        const matchesUser = cId === uId || 
+                            cId === uName || 
+                            cId === usrPrefixed ||
+                            ('usr_' + cId) === uId ||
+                            cUsername === uName || 
+                            cUsername === uId ||
+                            ('usr_' + cUsername) === uId ||
+                            (cName && uFullName && cName === uFullName);
+
         const hasPermission = c.permission === 'EDITOR' || c.permission === 'VIEWER';
         return matchesUser && hasPermission;
       });
