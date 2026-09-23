@@ -367,20 +367,42 @@ export class ProjectWorkspaceService {
    */
   getUserPermission(projectId: string, userId?: string): ProjectPermission {
     const currentAuthUser = this.authService.currentUser();
-    const targetUserId = (userId || currentAuthUser?.id || '').toLowerCase();
-    const targetUsername = (currentAuthUser?.username || '').toLowerCase();
-    if (!targetUserId && !targetUsername) return 'NONE';
+    const allUsers = this.authService.users();
 
-    const isGlobalAdmin = currentAuthUser?.rol === 'ADMINISTRADOR';
+    let targetUserId = '';
+    let targetUsername = '';
+
+    if (userId) {
+      const uSearch = userId.toLowerCase().trim();
+      const targetUserObj = allUsers.find(u => 
+        u.id.toLowerCase() === uSearch || 
+        u.username.toLowerCase() === uSearch || 
+        ('usr_' + u.username.toLowerCase()) === uSearch ||
+        (u.id.toLowerCase() === ('usr_' + uSearch))
+      );
+      if (targetUserObj) {
+        targetUserId = targetUserObj.id.toLowerCase();
+        targetUsername = targetUserObj.username.toLowerCase();
+      } else {
+        targetUserId = uSearch;
+        targetUsername = uSearch.replace(/^usr_/, '');
+      }
+    } else {
+      targetUserId = (currentAuthUser?.id || '').toLowerCase().trim();
+      targetUsername = (currentAuthUser?.username || '').toLowerCase().trim();
+    }
+
+    if (!targetUserId && !targetUsername) return 'NONE';
 
     const project = this.projects().find(p => p.id === projectId);
     if (!project) return 'NONE';
 
-    const owner = (project.ownerId || '').toLowerCase();
+    const owner = (project.ownerId || '').toLowerCase().trim();
     const isOwner = owner === targetUserId ||
                     owner === targetUsername ||
                     owner === ('usr_' + targetUsername) ||
-                    ('usr_' + owner) === targetUserId;
+                    ('usr_' + owner) === targetUserId ||
+                    ('usr_' + owner) === ('usr_' + targetUsername);
     if (isOwner) {
       return 'OWNER';
     }
@@ -388,21 +410,25 @@ export class ProjectWorkspaceService {
     // Buscar en la lista explícita de colaboradores autorizados
     if (project.colaboradores && Array.isArray(project.colaboradores)) {
       const colab = project.colaboradores.find(c => {
-        const cId = (c.userId || '').toLowerCase();
-        const cUsername = (c.username || '').toLowerCase();
+        const cId = (c.userId || '').toLowerCase().trim();
+        const cUsername = (c.username || '').toLowerCase().trim();
         return cId === targetUserId ||
                cId === targetUsername ||
                cId === ('usr_' + targetUsername) ||
+               ('usr_' + cId) === targetUserId ||
+               ('usr_' + cId) === ('usr_' + targetUsername) ||
                cUsername === targetUsername ||
-               cUsername === targetUserId;
+               cUsername === targetUserId ||
+               ('usr_' + cUsername) === targetUserId ||
+               ('usr_' + cUsername) === ('usr_' + targetUsername);
       });
       if (colab && colab.permission) {
         return colab.permission;
       }
     }
 
-    // Si es Administrador, tiene acceso de supervisión
-    if (isGlobalAdmin) {
+    // Si es Administrador y está consultando su propio permiso
+    if (!userId && currentAuthUser?.rol === 'ADMINISTRADOR') {
       return 'VIEWER';
     }
 

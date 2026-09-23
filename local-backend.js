@@ -917,7 +917,26 @@ const server = http.createServer(async (req, res) => {
       }
       for (const p of body) {
         if (p && p.id) {
-          map.set(p.id, p);
+          const existing = map.get(p.id);
+          if (existing) {
+            const colabMap = new Map();
+            for (const c of (existing.colaboradores || [])) {
+              const k = (c.userId || c.username || '').toLowerCase();
+              if (k) colabMap.set(k, c);
+            }
+            for (const c of (p.colaboradores || [])) {
+              const k = (c.userId || c.username || '').toLowerCase();
+              if (k) colabMap.set(k, c);
+            }
+            map.set(p.id, {
+              ...existing,
+              ...p,
+              colaboradores: Array.from(colabMap.values()),
+              updatedAt: new Date().toISOString()
+            });
+          } else {
+            map.set(p.id, p);
+          }
         }
       }
       enterpriseProjects = Array.from(map.values());
