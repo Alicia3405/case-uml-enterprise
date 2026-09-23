@@ -11,7 +11,8 @@ class ProjectStorageService {
   factory ProjectStorageService() => _instance;
   ProjectStorageService._internal();
 
-  static const String _projectsKey = 'case_mobile_projects';
+  static const String _projectsKey = 'case_enterprise_projects';
+  static const String _legacyProjectsKey = 'case_mobile_projects';
   static const String _activeDiagramKey = 'case_mobile_active_diagram_';
 
   /// Obtiene la lista de proyectos guardados y sincroniza con el backend
@@ -19,7 +20,11 @@ class ProjectStorageService {
     final prefs = await SharedPreferences.getInstance();
     List<ProjectSummary> localProjects = [];
 
-    final raw = prefs.getString(_projectsKey);
+    var raw = prefs.getString(_projectsKey);
+    if (raw == null || raw.isEmpty) {
+      raw = prefs.getString(_legacyProjectsKey);
+    }
+
     if (raw != null && raw.isNotEmpty) {
       try {
         final List<dynamic> list = jsonDecode(raw);
@@ -29,7 +34,7 @@ class ProjectStorageService {
       }
     }
 
-    // Sincronizar con backend REST
+    // Sincronizar con backend REST en AWS EC2
     try {
       final backendResp = await ApiSyncHelper.httpGet('/api/v1/proyectos');
       if (backendResp != null && backendResp.isNotEmpty) {
@@ -50,6 +55,18 @@ class ProjectStorageService {
           for (final lp in localProjects) {
             if (!mergedMap.containsKey(lp.id) && lp.id.isNotEmpty) {
               mergedMap[lp.id] = lp;
+            } else if (mergedMap.containsKey(lp.id)) {
+              // Fusionar colaboradores
+              final existing = mergedMap[lp.id]!;
+              final colabMap = <String, ProjectMember>{};
+              for (final m in existing.members) {
+                colabMap[m.userId.toLowerCase()] = m;
+              }
+              for (final m in lp.members) {
+                if (!colabMap.containsKey(m.userId.toLowerCase())) {
+                  existing.members.add(m);
+                }
+              }
             }
           }
 

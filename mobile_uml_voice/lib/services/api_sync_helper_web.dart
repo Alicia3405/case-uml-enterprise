@@ -10,10 +10,7 @@ class ApiSyncHelper {
     try {
       final loc = html.window.location;
       final host = loc.hostname;
-      if (host != null && host.isNotEmpty) {
-        if (host == 'localhost' || host == '127.0.0.1') {
-          return 'http://localhost:8080';
-        }
+      if (host != null && host.isNotEmpty && host != 'localhost' && host != '127.0.0.1') {
         final isHttps = loc.protocol.contains('https');
         final scheme = isHttps ? 'https' : 'http';
         return '$scheme://$host:8080';

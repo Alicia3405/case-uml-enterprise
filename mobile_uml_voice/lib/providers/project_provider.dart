@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -72,8 +73,43 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Timer? _bgSyncTimer;
+
   ProjectProvider() {
     loadProjects();
+    _startBackgroundSync();
+  }
+
+  void _startBackgroundSync() {
+    _bgSyncTimer?.cancel();
+    _bgSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
+      try {
+        final updated = await _storage.getProjects();
+        if (updated.isNotEmpty && (updated.length != _projects.length || !_areProjectListsEqual(_projects, updated))) {
+          _projects = updated;
+          notifyListeners();
+        }
+      } catch (_) {}
+    });
+  }
+
+  bool _areProjectListsEqual(List<ProjectSummary> a, List<ProjectSummary> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i].id != b[i].id || 
+          a[i].name != b[i].name || 
+          a[i].members.length != b[i].members.length ||
+          a[i].classCount != b[i].classCount) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  void dispose() {
+    _bgSyncTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> loadProjects() async {

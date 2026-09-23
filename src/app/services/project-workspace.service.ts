@@ -166,8 +166,11 @@ export class ProjectWorkspaceService {
   }
 
   private getBackendUrl(): string {
-    if (typeof window === 'undefined') return 'http://localhost:8080';
+    if (typeof window === 'undefined') return 'http://3.85.188.197:8080';
     const host = window.location.hostname || 'localhost';
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return 'http://3.85.188.197:8080';
+    }
     return `${window.location.protocol}//${host}:8080`;
   }
 
@@ -210,37 +213,47 @@ export class ProjectWorkspaceService {
 
   public fetchProjectsFromBackend(): void {
     if (typeof window === 'undefined') return;
-    const url = `${this.getBackendUrl()}/api/v1/proyectos`;
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        const backendProjects: ProjectSummary[] = data?.datos || (Array.isArray(data) ? data : []);
-        if (Array.isArray(backendProjects) && backendProjects.length > 0) {
-          // Fusionar con proyectos locales
-          const merged = [...backendProjects];
-          for (const localP of this.projects()) {
-            const idx = merged.findIndex(m => m.id === localP.id);
-            if (idx === -1) {
-              merged.push(localP);
-            } else {
-              // Fusionar colaboradores de backend y local
-              const colabMap = new Map();
-              for (const c of (merged[idx].colaboradores || [])) {
-                const key = (c.userId || c.username || '').toLowerCase();
-                if (key) colabMap.set(key, c);
+    const urls = [
+      'http://3.85.188.197:8080/api/v1/proyectos',
+      `${this.getBackendUrl()}/api/v1/proyectos`
+    ];
+    const tryFetch = async () => {
+      for (const url of Array.from(new Set(urls))) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            const backendProjects: ProjectSummary[] = data?.datos || (Array.isArray(data) ? data : []);
+            if (Array.isArray(backendProjects) && backendProjects.length > 0) {
+              // Fusionar con proyectos locales
+              const merged = [...backendProjects];
+              for (const localP of this.projects()) {
+                const idx = merged.findIndex(m => m.id === localP.id);
+                if (idx === -1) {
+                  merged.push(localP);
+                } else {
+                  // Fusionar colaboradores de backend y local
+                  const colabMap = new Map();
+                  for (const c of (merged[idx].colaboradores || [])) {
+                    const key = (c.userId || c.username || '').toLowerCase();
+                    if (key) colabMap.set(key, c);
+                  }
+                  for (const c of (localP.colaboradores || [])) {
+                    const key = (c.userId || c.username || '').toLowerCase();
+                    if (key) colabMap.set(key, c);
+                  }
+                  merged[idx].colaboradores = Array.from(colabMap.values());
+                }
               }
-              for (const c of (localP.colaboradores || [])) {
-                const key = (c.userId || c.username || '').toLowerCase();
-                if (key) colabMap.set(key, c);
-              }
-              merged[idx].colaboradores = Array.from(colabMap.values());
+              this.projects.set(merged);
+              this.persistProjects(merged);
+              return;
             }
           }
-          this.projects.set(merged);
-          this.persistProjects(merged);
-        }
-      })
-      .catch(() => {});
+        } catch (_) {}
+      }
+    };
+    tryFetch();
   }
 
   private initProjects(): void {
@@ -296,6 +309,7 @@ export class ProjectWorkspaceService {
 
     this.persistProjects(stored);
     this.projects.set(stored);
+    this.pushProjectsToBackend(stored);
     this.fetchProjectsFromBackend();
   }
 
@@ -307,13 +321,20 @@ export class ProjectWorkspaceService {
     }
   }
 
-  private pushProjectsToBackend(list: ProjectSummary[]): void {
+  public pushProjectsToBackend(list?: ProjectSummary[]): void {
     if (typeof window === 'undefined') return;
-    fetch(`${this.getBackendUrl()}/api/v1/proyectos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(list)
-    }).catch(() => {});
+    const toSend = list || this.projects();
+    const urls = [
+      'http://3.85.188.197:8080/api/v1/proyectos',
+      `${this.getBackendUrl()}/api/v1/proyectos`
+    ];
+    for (const url of Array.from(new Set(urls))) {
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toSend)
+      }).catch(() => {});
+    }
   }
 
   private broadcastProjects(list: ProjectSummary[]): void {
