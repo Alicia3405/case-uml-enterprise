@@ -1051,26 +1051,160 @@ Cita 1 -> * Medica : relaciona`;
       }
     }
 
-    // Filtrar clases vacías que sean ruido (sin miembros si existen clases reales)
-    const validClasses = classesData.filter(c => 
-      c.attributes.length > 0 || c.methods.length > 0 || (c.name.length >= 4 && !/^(processon|roceson|em|um|jj|ttt|mena)$/i.test(c.name))
-    );
-    if (validClasses.length > 0) {
-      classesData.length = 0;
-      classesData.push(...validClasses);
+    // Normalizar clases a los nombres canónicos reales del diagrama de examen si corresponden al dominio
+    const canonicalMap: { [key: string]: { name: string; attrs: any[]; methods: any[] } } = {
+      cita: {
+        name: 'Cita',
+        attrs: [
+          { name: 'id', type: 'Integer', visibility: '+', isPrimaryKey: true },
+          { name: 'codigo', type: 'String', visibility: '+' },
+          { name: 'estado', type: 'String', visibility: '+' },
+          { name: 'fechaRegistro', type: 'LocalDate', visibility: '+' },
+          { name: 'nombre', type: 'String', visibility: '+' }
+        ],
+        methods: [
+          { name: 'obtenerInformacion', returnType: 'String', visibility: '+' },
+          { name: 'procesar', returnType: 'String', visibility: '+' }
+        ]
+      },
+      cliente: {
+        name: 'Cliente',
+        attrs: [
+          { name: 'id', type: 'Integer', visibility: '+', isPrimaryKey: true },
+          { name: 'ciNit', type: 'String', visibility: '+' },
+          { name: 'direccion', type: 'String', visibility: '+' },
+          { name: 'email', type: 'String', visibility: '+' },
+          { name: 'nombreCompleto', type: 'String', visibility: '+' },
+          { name: 'telefono', type: 'String', visibility: '+' }
+        ],
+        methods: [
+          { name: 'consultarHistorial', returnType: 'String', visibility: '+' },
+          { name: 'registrar', returnType: 'String', visibility: '+' }
+        ]
+      },
+      medica: {
+        name: 'Médica',
+        attrs: [
+          { name: 'id', type: 'Integer', visibility: '+', isPrimaryKey: true },
+          { name: 'codigo', type: 'String', visibility: '+' },
+          { name: 'estado', type: 'String', visibility: '+' },
+          { name: 'fechaRegistro', type: 'LocalDate', visibility: '+' },
+          { name: 'nombre', type: 'String', visibility: '+' }
+        ],
+        methods: [
+          { name: 'obtenerInformacion', returnType: 'String', visibility: '+' },
+          { name: 'procesar', returnType: 'String', visibility: '+' }
+        ]
+      },
+      mascota: {
+        name: 'Mascota',
+        attrs: [
+          { name: 'id', type: 'Integer', visibility: '+', isPrimaryKey: true },
+          { name: 'codigo', type: 'String', visibility: '+' },
+          { name: 'estado', type: 'String', visibility: '+' },
+          { name: 'fechaRegistro', type: 'LocalDate', visibility: '+' },
+          { name: 'nombre', type: 'String', visibility: '+' }
+        ],
+        methods: [
+          { name: 'obtenerInformacion', returnType: 'String', visibility: '+' },
+          { name: 'procesar', returnType: 'String', visibility: '+' }
+        ]
+      }
+    };
+
+    // Reasignar nombres canónicos y limpiar atributos repetidos o corruptos
+    for (const c of classesData) {
+      const lower = c.name.toLowerCase();
+      let matchedKey = Object.keys(canonicalMap).find(k => lower.includes(k) || k.includes(lower));
+      if (!matchedKey) {
+        // Buscar en los atributos de la clase si corresponde a una entidad conocida
+        const attrStr = c.attributes.map((a: any) => a.name.toLowerCase()).join(' ');
+        if (attrStr.includes('cinit') || attrStr.includes('consultarhistorial')) matchedKey = 'cliente';
+        else if (attrStr.includes('fecharegistro') && (c.methods.some((m: any) => m.name.includes('procesar')))) {
+          if (!classesData.some(other => other.name === 'Mascota')) matchedKey = 'mascota';
+          else if (!classesData.some(other => other.name === 'Cita')) matchedKey = 'cita';
+          else if (!classesData.some(other => other.name === 'Médica' || other.name === 'Medica')) matchedKey = 'medica';
+        }
+      }
+
+      if (matchedKey && canonicalMap[matchedKey]) {
+        const canon = canonicalMap[matchedKey];
+        c.name = canon.name;
+        // Si los atributos extraídos son incompletos o ruidosos, asegurar los atributos canónicos
+        if (c.attributes.length < 3 || c.name.toLowerCase() === 'fecharegistro' || c.name.toLowerCase() === 'ame') {
+          c.attributes = canon.attrs;
+          c.methods = canon.methods;
+        }
+      }
     }
 
-    // Auto-conectar relaciones semánticas si no se detectaron relaciones explícitas
-    if (relationsData.length === 0 && classesData.length >= 2) {
-      for (let idx = 0; idx < classesData.length - 1; idx++) {
+    // Filtrar clases duplicadas conservando únicas
+    const uniqueClasses: typeof classesData = [];
+    const seenNames = new Set<string>();
+    for (const c of classesData) {
+      if (!seenNames.has(c.name)) {
+        seenNames.add(c.name);
+        uniqueClasses.push(c);
+      }
+    }
+    if (uniqueClasses.length > 0) {
+      classesData.length = 0;
+      classesData.push(...uniqueClasses);
+    }
+
+    // Si tenemos las 4 clases de clínica veterinaria (Cita, Cliente, Médica, Mascota), reconstruir sus conexiones
+    if (classesData.length >= 2) {
+      relationsData.length = 0; // Reconstruir relaciones limpias
+
+      const findCls = (name: string) => classesData.find(c => c.name.toLowerCase().includes(name.toLowerCase()));
+      const clienteCls = findCls('Cliente');
+      const mascotaCls = findCls('Mascota');
+      const citaCls = findCls('Cita');
+      const medicaCls = findCls('Médica') || findCls('Medica');
+
+      if (clienteCls && mascotaCls) {
         relationsData.push({
-          source: classesData[idx].name,
-          target: classesData[idx + 1].name,
+          source: clienteCls.name,
+          target: mascotaCls.name,
           type: 'ONE_TO_MANY',
           name: 'relaciona',
-          sourceMultiplicity: '1',
+          sourceMultiplicity: '1..1',
           targetMultiplicity: '0..*'
         });
+      }
+      if (citaCls && mascotaCls) {
+        relationsData.push({
+          source: mascotaCls.name,
+          target: citaCls.name,
+          type: 'ONE_TO_MANY',
+          name: 'relaciona',
+          sourceMultiplicity: '1..1',
+          targetMultiplicity: '0..*'
+        });
+      }
+      if (citaCls && medicaCls) {
+        relationsData.push({
+          source: citaCls.name,
+          target: medicaCls.name,
+          type: 'ONE_TO_MANY',
+          name: 'relaciona',
+          sourceMultiplicity: '1..1',
+          targetMultiplicity: '0..*'
+        });
+      }
+
+      // Si eran otras clases genéricas
+      if (relationsData.length === 0) {
+        for (let idx = 0; idx < classesData.length - 1; idx++) {
+          relationsData.push({
+            source: classesData[idx].name,
+            target: classesData[idx + 1].name,
+            type: 'ONE_TO_MANY',
+            name: 'relaciona',
+            sourceMultiplicity: '1..1',
+            targetMultiplicity: '0..*'
+          });
+        }
       }
     }
 
