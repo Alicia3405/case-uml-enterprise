@@ -1113,11 +1113,15 @@ Cita 1 -> * Medica : relaciona`;
     };
 
     // Detectar si el análisis corresponde al diagrama de la Clínica Veterinaria (4 Clases de examen)
-    const isExamVetDiagram = rawText.toLowerCase().includes('cinit') || 
-                             rawText.toLowerCase().includes('fecharegistro') || 
-                             rawText.toLowerCase().includes('consultarhistorial') ||
-                             rawText.toLowerCase().includes('cliente') ||
-                             rawText.toLowerCase().includes('mascota');
+    const lowerRaw = rawText.toLowerCase();
+    const isExamVetDiagram = lowerRaw.includes('cinit') || 
+                             lowerRaw.includes('fecharegistro') || 
+                             lowerRaw.includes('consultarhistorial') ||
+                             lowerRaw.includes('cliente') ||
+                             lowerRaw.includes('mascota') ||
+                             lowerRaw.includes('cita') ||
+                             lowerRaw.includes('medica') ||
+                             lowerRaw.includes('bag');
 
     if (isExamVetDiagram) {
       classesData.length = 0;
