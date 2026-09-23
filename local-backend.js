@@ -117,6 +117,74 @@ function parseBody(req) {
 // Clientes SSE activos para colaboración en tiempo real
 const sseClients = new Set();
 
+// Memoria y persistencia de Invitaciones y Proyectos de la Organización
+let enterpriseInvitations = [];
+let enterpriseProjects = [
+  {
+    id: 'proj_salud_2026',
+    name: 'Sistema de Gestión de Salud Hospitalaria',
+    description: 'Modelo conceptual de datos UML 2.5 para consultas, médicos y pacientes.',
+    ownerId: 'usr_carlos',
+    ownerName: 'Ing. Carlos Mendoza',
+    colaboradores: [
+      { userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', color: '#f97316', permission: 'EDITOR', canDownloadBackend: true },
+      { userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', color: '#10b981', permission: 'VIEWER', canDownloadBackend: false },
+      { userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', color: '#ec4899', permission: 'EDITOR', canDownloadBackend: true }
+    ],
+    totalClases: 4,
+    totalRelaciones: 3,
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'proj_ecommerce_2026',
+    name: 'Plataforma de Facturación y Pedidos',
+    description: 'Diagrama de clases para el módulo de pagos y comprobantes fiscales.',
+    ownerId: 'usr_carlos',
+    ownerName: 'Ing. Carlos Mendoza',
+    colaboradores: [
+      { userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', color: '#f97316', permission: 'VIEWER', canDownloadBackend: false },
+      { userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', color: '#ec4899', permission: 'EDITOR', canDownloadBackend: true }
+    ],
+    totalClases: 5,
+    totalRelaciones: 4,
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'proj_laboratorio_2026',
+    name: 'Gestión de Laboratorio Clínico y Muestras',
+    description: 'Modelo de entidades UML para análisis de sangre, reactivos y resultados.',
+    ownerId: 'usr_laura',
+    ownerName: 'Dra. Laura Paredes',
+    colaboradores: [
+      { userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', color: '#0ea5e9', permission: 'EDITOR', canDownloadBackend: true },
+      { userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', color: '#10b981', permission: 'VIEWER', canDownloadBackend: false },
+      { userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', color: '#ec4899', permission: 'EDITOR', canDownloadBackend: true }
+    ],
+    totalClases: 3,
+    totalRelaciones: 2,
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'proj_farmacia_2026',
+    name: 'Inventario y Dispensación Farmacéutica',
+    description: 'Control de stocks de medicamentos, lotes y prescripciones médicas.',
+    ownerId: 'usr_pedro',
+    ownerName: 'Ing. Pedro Quispe',
+    colaboradores: [
+      { userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', color: '#0ea5e9', permission: 'EDITOR', canDownloadBackend: true },
+      { userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', color: '#f97316', permission: 'EDITOR', canDownloadBackend: true },
+      { userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', color: '#ec4899', permission: 'EDITOR', canDownloadBackend: true }
+    ],
+    totalClases: 4,
+    totalRelaciones: 3,
+    createdAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
+
 const server = http.createServer(async (req, res) => {
   // Manejo de Preflight CORS
   if (req.method === 'OPTIONS') {
@@ -864,40 +932,6 @@ const server = http.createServer(async (req, res) => {
 // SERVIDOR WEBSOCKET RFC 6455 NATIVO (Colaboración y Exclusión Mutua en Tiempo Real)
 // ============================================================================
 const crypto = require('crypto');
-
-// Memoria y persistencia de Invitaciones y Proyectos de la Organización
-let enterpriseInvitations = [];
-let enterpriseProjects = [
-  {
-    id: 'proj_salud_2026',
-    name: 'Sistema de Gestión de Salud Hospitalaria',
-    description: 'Modelo conceptual de datos UML 2.5 para consultas, médicos y pacientes.',
-    ownerId: 'usr_carlos',
-    ownerName: 'Ing. Carlos Mendoza',
-    colaboradores: [
-      { userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', color: '#f97316', permission: 'EDITOR' },
-      { userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', color: '#10b981', permission: 'VIEWER' }
-    ],
-    totalClases: 4,
-    totalRelaciones: 3,
-    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
-    updatedAt: new Date().toISOString()
-  },
-  {
-    id: 'proj_ecommerce_2026',
-    name: 'Plataforma de Facturación y Pedidos',
-    description: 'Diagrama de clases para el módulo de pagos y comprobantes fiscales.',
-    ownerId: 'usr_carlos',
-    ownerName: 'Ing. Carlos Mendoza',
-    colaboradores: [
-      { userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', color: '#f97316', permission: 'VIEWER' }
-    ],
-    totalClases: 5,
-    totalRelaciones: 4,
-    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-    updatedAt: new Date().toISOString()
-  }
-];
 
 // projectRooms: Map<projectId, Set<{ socket, userId, user }>>
 const projectRooms = new Map();

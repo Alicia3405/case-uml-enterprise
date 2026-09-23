@@ -151,16 +151,39 @@ export class UmlWorkspaceComponent {
   myProjects = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return [];
-    return this.projectService.projects().filter(p => p.ownerId === user.id);
+    const uId = (user.id || '').toLowerCase();
+    const uName = (user.username || '').toLowerCase();
+    const usrPrefixed = ('usr_' + uName);
+
+    return this.projectService.projects().filter(p => {
+      const owner = (p.ownerId || '').toLowerCase();
+      return owner === uId || owner === uName || owner === usrPrefixed || ('usr_' + owner) === uId;
+    });
   });
 
   sharedProjects = computed(() => {
     const user = this.authService.currentUser();
     if (!user) return [];
-    return this.projectService.projects().filter(p => 
-      p.ownerId !== user.id && 
-      p.colaboradores.some(c => c.userId === user.id && c.permission !== 'NONE')
-    );
+    const uId = (user.id || '').toLowerCase();
+    const uName = (user.username || '').toLowerCase();
+    const usrPrefixed = ('usr_' + uName);
+
+    return this.projectService.projects().filter(p => {
+      const owner = (p.ownerId || '').toLowerCase();
+      const isOwner = owner === uId || owner === uName || owner === usrPrefixed || ('usr_' + owner) === uId;
+      if (isOwner) return false;
+
+      if (!p.colaboradores || !Array.isArray(p.colaboradores)) return false;
+
+      return p.colaboradores.some(c => {
+        const cId = (c.userId || '').toLowerCase();
+        const cUsername = (c.username || '').toLowerCase();
+        const matchesUser = cId === uId || cId === uName || cId === usrPrefixed ||
+                            cUsername === uName || cUsername === uId;
+        const hasPermission = c.permission === 'EDITOR' || c.permission === 'VIEWER';
+        return matchesUser && hasPermission;
+      });
+    });
   });
 
   // Historial de descargas privadas: solo visible en el dashboard del Propietario del diagrama
@@ -238,10 +261,18 @@ export class UmlWorkspaceComponent {
     const term = this.memberSearchTerm().trim().toLowerCase();
     const allUsers = this.authService.users();
 
-    // Filtrar solo los usuarios que son el Dueño o están en la lista de colaboradores con rol activo
     const team = allUsers.filter(u => {
-      if (proj.ownerId === u.id) return true;
-      return proj.colaboradores.some(c => c.userId === u.id && (c.permission === 'EDITOR' || c.permission === 'VIEWER'));
+      const uId = u.id.toLowerCase();
+      const uName = u.username.toLowerCase();
+      const owner = (proj.ownerId || '').toLowerCase();
+      if (owner === uId || owner === uName || owner === ('usr_' + uName)) return true;
+      return proj.colaboradores && proj.colaboradores.some(c => {
+        const cId = (c.userId || '').toLowerCase();
+        const cName = (c.username || '').toLowerCase();
+        const matches = cId === uId || cId === uName || cName === uName || cName === uId;
+        const hasPerm = c.permission === 'EDITOR' || c.permission === 'VIEWER';
+        return matches && hasPerm;
+      });
     });
 
     if (!term) return team;
@@ -264,10 +295,19 @@ export class UmlWorkspaceComponent {
     if (!proj) return [];
     const allUsers = this.authService.users();
     return allUsers.filter(u => {
+      const uId = u.id.toLowerCase();
+      const uName = u.username.toLowerCase();
+      const owner = (proj.ownerId || '').toLowerCase();
       // Excluir al dueño
-      if (proj.ownerId === u.id) return false;
+      if (owner === uId || owner === uName || owner === ('usr_' + uName)) return false;
       // Excluir a los que ya son colaboradores activos (EDITOR o VIEWER)
-      const isAlreadyCollab = proj.colaboradores && proj.colaboradores.some(c => c.userId === u.id && (c.permission === 'EDITOR' || c.permission === 'VIEWER'));
+      const isAlreadyCollab = proj.colaboradores && proj.colaboradores.some(c => {
+        const cId = (c.userId || '').toLowerCase();
+        const cName = (c.username || '').toLowerCase();
+        const matches = cId === uId || cId === uName || cName === uName || cName === uId;
+        const hasPerm = c.permission === 'EDITOR' || c.permission === 'VIEWER';
+        return matches && hasPerm;
+      });
       return !isAlreadyCollab;
     });
   });

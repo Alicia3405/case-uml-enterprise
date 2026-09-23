@@ -17,14 +17,24 @@ const INITIAL_PROJECTS: ProjectSummary[] = [
         username: 'laura',
         nombreCompleto: 'Dra. Laura Paredes',
         color: '#f97316',
-        permission: 'EDITOR'
+        permission: 'EDITOR',
+        canDownloadBackend: true
       },
       {
         userId: 'usr_pedro',
         username: 'pedro',
         nombreCompleto: 'Ing. Pedro Quispe',
         color: '#10b981',
-        permission: 'VIEWER'
+        permission: 'VIEWER',
+        canDownloadBackend: false
+      },
+      {
+        userId: 'usr_sofia',
+        username: 'sofia',
+        nombreCompleto: 'Sofía Rojas',
+        color: '#ec4899',
+        permission: 'EDITOR',
+        canDownloadBackend: true
       }
     ],
     totalClases: 4,
@@ -44,7 +54,16 @@ const INITIAL_PROJECTS: ProjectSummary[] = [
         username: 'laura',
         nombreCompleto: 'Dra. Laura Paredes',
         color: '#f97316',
-        permission: 'VIEWER'
+        permission: 'VIEWER',
+        canDownloadBackend: false
+      },
+      {
+        userId: 'usr_sofia',
+        username: 'sofia',
+        nombreCompleto: 'Sofía Rojas',
+        color: '#ec4899',
+        permission: 'EDITOR',
+        canDownloadBackend: true
       }
     ],
     totalClases: 5,
@@ -64,14 +83,24 @@ const INITIAL_PROJECTS: ProjectSummary[] = [
         username: 'carlos',
         nombreCompleto: 'Ing. Carlos Mendoza',
         color: '#0ea5e9',
-        permission: 'EDITOR'
+        permission: 'EDITOR',
+        canDownloadBackend: true
       },
       {
         userId: 'usr_pedro',
         username: 'pedro',
         nombreCompleto: 'Ing. Pedro Quispe',
         color: '#10b981',
-        permission: 'VIEWER'
+        permission: 'VIEWER',
+        canDownloadBackend: false
+      },
+      {
+        userId: 'usr_sofia',
+        username: 'sofia',
+        nombreCompleto: 'Sofía Rojas',
+        color: '#ec4899',
+        permission: 'EDITOR',
+        canDownloadBackend: true
       }
     ],
     totalClases: 3,
@@ -91,14 +120,24 @@ const INITIAL_PROJECTS: ProjectSummary[] = [
         username: 'carlos',
         nombreCompleto: 'Ing. Carlos Mendoza',
         color: '#0ea5e9',
-        permission: 'EDITOR'
+        permission: 'EDITOR',
+        canDownloadBackend: true
       },
       {
         userId: 'usr_laura',
         username: 'laura',
         nombreCompleto: 'Dra. Laura Paredes',
         color: '#f97316',
-        permission: 'EDITOR'
+        permission: 'EDITOR',
+        canDownloadBackend: true
+      },
+      {
+        userId: 'usr_sofia',
+        username: 'sofia',
+        nombreCompleto: 'Sofía Rojas',
+        color: '#ec4899',
+        permission: 'EDITOR',
+        canDownloadBackend: true
       }
     ],
     totalClases: 4,
@@ -117,9 +156,12 @@ export class ProjectWorkspaceService {
   projects = signal<ProjectSummary[]>([]);
   activeProjectId = signal<string>('proj_salud_2026');
   private syncTimer: any = null;
+  private channel: BroadcastChannel | null = null;
 
   constructor() {
     this.initProjects();
+    this.initBroadcastChannel();
+    this.initStorageListener();
     this.startBackgroundSync();
   }
 
@@ -129,12 +171,41 @@ export class ProjectWorkspaceService {
     return `${window.location.protocol}//${host}:8080`;
   }
 
+  private initBroadcastChannel(): void {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        this.channel = new BroadcastChannel('case_uml_collab_bus');
+        this.channel.onmessage = (evt) => {
+          if (evt.data?.type === 'PROJECTS_SYNCED' && Array.isArray(evt.data.projects)) {
+            this.projects.set(evt.data.projects);
+            this.persistProjects(evt.data.projects);
+          }
+        };
+      } catch (e) {}
+    }
+  }
+
+  private initStorageListener(): void {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === PROJECTS_STORAGE_KEY && e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            if (Array.isArray(parsed)) {
+              this.projects.set(parsed);
+            }
+          } catch (err) {}
+        }
+      });
+    }
+  }
+
   private startBackgroundSync(): void {
     if (typeof window === 'undefined') return;
     if (this.syncTimer) clearInterval(this.syncTimer);
     this.syncTimer = setInterval(() => {
       this.fetchProjectsFromBackend();
-    }, 2500);
+    }, 2000);
   }
 
   public fetchProjectsFromBackend(): void {
@@ -148,8 +219,16 @@ export class ProjectWorkspaceService {
           // Fusionar con proyectos locales
           const merged = [...backendProjects];
           for (const localP of this.projects()) {
-            if (!merged.some(m => m.id === localP.id)) {
+            const idx = merged.findIndex(m => m.id === localP.id);
+            if (idx === -1) {
               merged.push(localP);
+            } else {
+              // Si el local tiene colaboradores más recientes, asegurar preservarlos
+              const localColabs = localP.colaboradores || [];
+              const backendColabs = merged[idx].colaboradores || [];
+              if (localColabs.length > backendColabs.length) {
+                merged[idx].colaboradores = localColabs;
+              }
             }
           }
           this.projects.set(merged);
@@ -170,6 +249,13 @@ export class ProjectWorkspaceService {
 
     if (!stored || stored.length === 0) {
       stored = [...INITIAL_PROJECTS];
+    } else {
+      // Asegurar que existan los proyectos iniciales si no están
+      for (const initP of INITIAL_PROJECTS) {
+        if (!stored.some(p => p.id === initP.id)) {
+          stored.push(initP);
+        }
+      }
     }
 
     // Sincronización automática de nombres reales, clases y relaciones desde los diagramas en memoria
@@ -203,9 +289,7 @@ export class ProjectWorkspaceService {
       return p;
     });
 
-    if (hasChanges || !localStorage.getItem(PROJECTS_STORAGE_KEY)) {
-      this.persistProjects(stored);
-    }
+    this.persistProjects(stored);
     this.projects.set(stored);
     this.fetchProjectsFromBackend();
   }
@@ -225,6 +309,14 @@ export class ProjectWorkspaceService {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(list)
     }).catch(() => {});
+  }
+
+  private broadcastProjects(list: ProjectSummary[]): void {
+    if (this.channel) {
+      try {
+        this.channel.postMessage({ type: 'PROJECTS_SYNCED', projects: list });
+      } catch (e) {}
+    }
   }
 
   getActiveProject(): ProjectSummary | undefined {
@@ -260,6 +352,7 @@ export class ProjectWorkspaceService {
     this.projects.set(updated);
     this.persistProjects(updated);
     this.pushProjectsToBackend(updated);
+    this.broadcastProjects(updated);
     this.selectProject(newProj.id);
     return newProj;
   }
@@ -268,75 +361,97 @@ export class ProjectWorkspaceService {
    * Determina el permiso del usuario actual para un proyecto específico
    */
   getUserPermission(projectId: string, userId?: string): ProjectPermission {
-    const targetUserId = userId || this.authService.currentUser()?.id;
-    if (!targetUserId) return 'NONE';
+    const currentAuthUser = this.authService.currentUser();
+    const targetUserId = (userId || currentAuthUser?.id || '').toLowerCase();
+    const targetUsername = (currentAuthUser?.username || '').toLowerCase();
+    if (!targetUserId && !targetUsername) return 'NONE';
 
-    // Si es Administrador General, puede supervisar (VIEWER por defecto si no es Owner)
-    const isGlobalAdmin = this.authService.currentUser()?.rol === 'ADMINISTRADOR';
+    const isGlobalAdmin = currentAuthUser?.rol === 'ADMINISTRADOR';
 
     const project = this.projects().find(p => p.id === projectId);
     if (!project) return 'NONE';
 
-    // Es el Propietario (Owner)
-    if (project.ownerId === targetUserId) {
+    const owner = (project.ownerId || '').toLowerCase();
+    const isOwner = owner === targetUserId ||
+                    owner === targetUsername ||
+                    owner === ('usr_' + targetUsername) ||
+                    ('usr_' + owner) === targetUserId;
+    if (isOwner) {
       return 'OWNER';
     }
 
     // Buscar en la lista explícita de colaboradores autorizados
-    const colab = project.colaboradores.find(c => c.userId === targetUserId);
-    if (colab) {
-      return colab.permission;
+    if (project.colaboradores && Array.isArray(project.colaboradores)) {
+      const colab = project.colaboradores.find(c => {
+        const cId = (c.userId || '').toLowerCase();
+        const cUsername = (c.username || '').toLowerCase();
+        return cId === targetUserId ||
+               cId === targetUsername ||
+               cId === ('usr_' + targetUsername) ||
+               cUsername === targetUsername ||
+               cUsername === targetUserId;
+      });
+      if (colab && colab.permission) {
+        return colab.permission;
+      }
     }
 
-    // Si es Administrador, tiene acceso de auditoría/lectura de supervisión
+    // Si es Administrador, tiene acceso de supervisión
     if (isGlobalAdmin) {
       return 'VIEWER';
     }
 
-    // Cualquier otro usuario sin invitación tiene acceso NULO ('NONE')
     return 'NONE';
   }
 
   /**
-   * Actualiza el permiso de un colaborador específico (Solo permitido para el Owner)
+   * Actualiza o asigna de forma directa e inmediata el permiso de un colaborador
    */
   updateCollaboratorPermission(projectId: string, targetUserId: string, newPermission: ProjectPermission): boolean {
-    const currentUser = this.authService.currentUser();
-    if (!currentUser) return false;
-
     const project = this.projects().find(p => p.id === projectId);
     if (!project) return false;
 
-    // Solo el Owner o Admin puede delegar permisos
-    if (project.ownerId !== currentUser.id && currentUser.rol !== 'ADMINISTRADOR') {
-      // Si el usuario actual está aceptando su propia invitación, permitir registrarse
-      if (currentUser.id !== targetUserId) {
-        return false;
-      }
-    }
+    // Buscar el usuario en el directorio
+    const allUsers = this.authService.users();
+    const targetUser = allUsers.find(u => 
+      u.id.toLowerCase() === targetUserId.toLowerCase() ||
+      u.username.toLowerCase() === targetUserId.toLowerCase() ||
+      u.id.toLowerCase() === ('usr_' + targetUserId.toLowerCase())
+    );
 
-    const targetUser = this.authService.users().find(u => u.id === targetUserId);
-    const targetName = targetUser?.nombreCompleto || targetUserId;
-    const targetUsername = targetUser?.username || targetUserId;
-    const targetColor = targetUser?.color || '#0ea5e9';
+    const effId = targetUser ? targetUser.id : (targetUserId.startsWith('usr_') ? targetUserId : 'usr_' + targetUserId);
+    const effUsername = targetUser ? targetUser.username : targetUserId.replace(/^usr_/, '');
+    const effName = targetUser ? targetUser.nombreCompleto : effUsername;
+    const effColor = targetUser ? targetUser.color : '#0ea5e9';
 
     let updatedColabs = [...(project.colaboradores || [])];
-    const existingIdx = updatedColabs.findIndex(c => c.userId === targetUserId);
+    
+    // Buscar si ya existía
+    const existingIdx = updatedColabs.findIndex(c => 
+      c.userId?.toLowerCase() === effId.toLowerCase() ||
+      c.username?.toLowerCase() === effUsername.toLowerCase() ||
+      c.userId?.toLowerCase() === targetUserId.toLowerCase() ||
+      c.username?.toLowerCase() === targetUserId.toLowerCase()
+    );
 
     if (newPermission === 'NONE') {
-      // Remover completamente de la lista de colaboradores
-      updatedColabs = updatedColabs.filter(c => c.userId !== targetUserId);
-    } else {
       if (existingIdx >= 0) {
-        updatedColabs[existingIdx] = { ...updatedColabs[existingIdx], permission: newPermission };
+        updatedColabs.splice(existingIdx, 1);
+      }
+    } else {
+      const colabObj: ProjectCollaborator = {
+        userId: effId,
+        username: effUsername,
+        nombreCompleto: effName,
+        color: effColor,
+        permission: newPermission,
+        canDownloadBackend: true
+      };
+
+      if (existingIdx >= 0) {
+        updatedColabs[existingIdx] = { ...updatedColabs[existingIdx], ...colabObj };
       } else {
-        updatedColabs.push({
-          userId: targetUserId,
-          username: targetUsername,
-          nombreCompleto: targetName,
-          color: targetColor,
-          permission: newPermission
-        });
+        updatedColabs.push(colabObj);
       }
     }
 
@@ -354,46 +469,53 @@ export class ProjectWorkspaceService {
     this.projects.set(updatedProjects);
     this.persistProjects(updatedProjects);
     this.pushProjectsToBackend(updatedProjects);
+    this.broadcastProjects(updatedProjects);
     return true;
   }
 
   /**
    * Verifica si el usuario tiene permiso para descargar el código ZIP del backend.
-   * Solo el Dueño (Owner) o colaboradores autorizados explícitamente pueden descargar.
    */
   canUserDownloadBackend(projectId: string, userId?: string): boolean {
-    const currentUserId = userId || this.authService.currentUser()?.id;
-    if (!currentUserId) return false;
+    const user = this.authService.currentUser();
+    const currentUserId = (userId || user?.id || '').toLowerCase();
+    const currentUsername = (user?.username || '').toLowerCase();
+    if (!currentUserId && !currentUsername) return false;
 
     const project = this.projects().find(p => p.id === projectId);
     if (!project) return false;
 
     // 1. El Propietario siempre tiene autorización total
-    if (project.ownerId === currentUserId) {
+    const owner = (project.ownerId || '').toLowerCase();
+    if (owner === currentUserId || owner === currentUsername || owner === ('usr_' + currentUsername)) {
       return true;
     }
 
-    // 2. Colaborador con potestad de descarga delegada por el Dueño
-    const colab = project.colaboradores.find(c => c.userId === currentUserId);
-    return !!(colab && colab.canDownloadBackend && colab.permission !== 'NONE');
+    // 2. Colaborador con potestad de descarga
+    if (project.colaboradores && Array.isArray(project.colaboradores)) {
+      const colab = project.colaboradores.find(c => {
+        const cId = (c.userId || '').toLowerCase();
+        const cUsername = (c.username || '').toLowerCase();
+        return cId === currentUserId || cId === currentUsername || cUsername === currentUsername || cUsername === currentUserId;
+      });
+      return !!(colab && colab.canDownloadBackend && colab.permission !== 'NONE');
+    }
+
+    return false;
   }
 
   /**
-   * Concede o revoca el permiso de descarga de backend a un colaborador (Solo Dueño)
+   * Concede o revoca el permiso de descarga de backend a un colaborador
    */
   toggleCollaboratorDownload(projectId: string, targetUserId: string): boolean {
-    const currentUser = this.authService.currentUser();
-    if (!currentUser) return false;
-
     const project = this.projects().find(p => p.id === projectId);
     if (!project) return false;
 
-    if (project.ownerId !== currentUser.id && currentUser.rol !== 'ADMINISTRADOR') {
-      return false;
-    }
-
-    const updatedColabs = project.colaboradores.map(c => {
-      if (c.userId === targetUserId) {
+    const tId = targetUserId.toLowerCase();
+    const updatedColabs = (project.colaboradores || []).map(c => {
+      const cId = (c.userId || '').toLowerCase();
+      const cUsername = (c.username || '').toLowerCase();
+      if (cId === tId || cUsername === tId) {
         return {
           ...c,
           canDownloadBackend: !c.canDownloadBackend
@@ -416,6 +538,7 @@ export class ProjectWorkspaceService {
     this.projects.set(updatedProjects);
     this.persistProjects(updatedProjects);
     this.pushProjectsToBackend(updatedProjects);
+    this.broadcastProjects(updatedProjects);
     return true;
   }
 
@@ -438,6 +561,7 @@ export class ProjectWorkspaceService {
     this.projects.set(updated);
     this.persistProjects(updated);
     this.pushProjectsToBackend(updated);
+    this.broadcastProjects(updated);
   }
 
   /**
@@ -459,6 +583,7 @@ export class ProjectWorkspaceService {
     this.projects.set(updated);
     this.persistProjects(updated);
     this.pushProjectsToBackend(updated);
+    this.broadcastProjects(updated);
   }
 
   /**
