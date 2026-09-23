@@ -1,0 +1,24 @@
+<div class="wf-layout-main wf-fade-in-section space-y-6">
+  <app-page-section title="Estados del flujo" subtitle="CLICK PARA FILTRAR REGISTROS" icon="analytics">
+    <div class="wf-state-grid">
+      @for (estado of estadosFlujo; track estado) {
+        <button
+          type="button"
+          class="wf-state-chip-v2"
+          [class.wf-state-chip-active]="filtroEstado === estado"
+          (click)="estadoToggled.emit(estado)">
+          <span class="wf-state-chip-v2__name">{{ etiquetaEstado(estado) }}</span>
+          <span class="wf-state-chip-v2__count">{{ contadoresEstado[estado] }}</span>
+        </button>
+      }
+    </div>
+  </app-page-section>
+
+  <div class="hidden sm:block">
+    <app-page-section title="Estado del Sistema" subtitle="ESTADÍSTICAS Y MÉTRICAS" icon="map">
+      <div class="p-4 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-400">
+        Panel de métricas activo para CASE UML Enterprise.
+      </div>
+    </app-page-section>
+  </div>
+</div>

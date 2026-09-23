@@ -1,0 +1,505 @@
+<div class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 animate-fadeIn select-none">
+  
+  <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-6xl max-h-[94vh] flex flex-col shadow-2xl animate-scaleUp overflow-hidden">
+    
+    <!-- Encabezado del Modal -->
+    <header class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 rounded-xl bg-gradient-to-tr from-emerald-500/20 via-teal-500/20 to-blue-500/20 border border-emerald-500/40 text-emerald-400">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h2 class="text-base font-bold text-white tracking-wide">Generador de Backend Spring Boot + PostgreSQL + Postman</h2>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              Generador Empresarial
+            </span>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono">
+              Java 17 • Spring Boot 3.3
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Arquitectura en capas limpia: <code class="text-teal-300">model/</code>, <code class="text-teal-300">repository/</code>, <code class="text-teal-300">service/</code>, <code class="text-teal-300">controller/</code>, <code class="text-teal-300">dto/</code>, DDL PostgreSQL y Colección Postman v2.1.
+          </p>
+        </div>
+      </div>
+
+      <button (click)="cerrar()" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Barra de Pestañas y Accesos Rápidos de Descarga -->
+    <div class="px-4 py-2.5 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+      
+      <!-- Pestañas Principales -->
+      <div class="flex items-center space-x-1.5">
+        <button 
+          (click)="activeTab.set('CODE')"
+          class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1.5"
+          [class.bg-emerald-500/20]="activeTab() === 'CODE'"
+          [class.text-emerald-300]="activeTab() === 'CODE'"
+          [class.border]="activeTab() === 'CODE'"
+          [class.border-emerald-500/40]="activeTab() === 'CODE'"
+          [class.text-slate-400]="activeTab() !== 'CODE'"
+          [class.hover:bg-slate-800]="activeTab() !== 'CODE'">
+          <span>💻 Código Fuente Java</span>
+        </button>
+
+        <button 
+          (click)="activeTab.set('POSTMAN')"
+          class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1.5"
+          [class.bg-orange-500/20]="activeTab() === 'POSTMAN'"
+          [class.text-orange-300]="activeTab() === 'POSTMAN'"
+          [class.border]="activeTab() === 'POSTMAN'"
+          [class.border-orange-500/40]="activeTab() === 'POSTMAN'"
+          [class.text-slate-400]="activeTab() !== 'POSTMAN'"
+          [class.hover:bg-slate-800]="activeTab() !== 'POSTMAN'">
+          <span>📮 Colección Postman</span>
+        </button>
+
+        <button 
+          (click)="activeTab.set('SCHEMA')"
+          class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1.5"
+          [class.bg-blue-500/20]="activeTab() === 'SCHEMA'"
+          [class.text-blue-300]="activeTab() === 'SCHEMA'"
+          [class.border]="activeTab() === 'SCHEMA'"
+          [class.border-blue-500/40]="activeTab() === 'SCHEMA'"
+          [class.text-slate-400]="activeTab() !== 'SCHEMA'"
+          [class.hover:bg-slate-800]="activeTab() !== 'SCHEMA'">
+          <span>🐘 Script SQL PostgreSQL</span>
+        </button>
+
+        @if (isOwner()) {
+          <button 
+            (click)="activeTab.set('HISTORY')"
+            class="px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1.5"
+            [class.bg-purple-500/20]="activeTab() === 'HISTORY'"
+            [class.text-purple-300]="activeTab() === 'HISTORY'"
+            [class.border]="activeTab() === 'HISTORY'"
+            [class.border-purple-500/40]="activeTab() === 'HISTORY'"
+            [class.text-slate-400]="activeTab() !== 'HISTORY'"
+            [class.hover:bg-slate-800]="activeTab() !== 'HISTORY'">
+            <span>🕒 Mi Historial de Descargas</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-purple-500/30 text-[10px] font-bold">
+              {{ filteredHistory().length }}
+            </span>
+          </button>
+        }
+      </div>
+
+      <!-- Botones de Acción de Descarga Rápida (Solo si está autorizado) -->
+      <div class="flex items-center space-x-2">
+        @if (canDownload()) {
+          <!-- Descarga Rápida Postman Solo -->
+          <button 
+            (click)="descargarPostmanSolo()"
+            title="Descargar solo el archivo postman_collection.json para probar de inmediato"
+            class="px-3 py-1.5 rounded-lg bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 border border-orange-500/40 font-semibold transition flex items-center space-x-1.5 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>📥 Postman (.json)</span>
+          </button>
+
+          <!-- Descarga Rápida DDL Postgres -->
+          <button 
+            (click)="descargarSqlSolo()"
+            title="Descargar solo el script schema.sql"
+            class="px-3 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 font-semibold transition flex items-center space-x-1.5 shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            <span>🐘 DDL (.sql)</span>
+          </button>
+
+          <!-- Descargar Proyecto Completo en ZIP -->
+          <button 
+            (click)="descargarProyectoZip()"
+            [disabled]="isBuildingZip()"
+            class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition flex items-center space-x-1.5 shadow-lg shadow-emerald-900/30 disabled:opacity-50">
+            @if (isBuildingZip()) {
+              <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Empaquetando...</span>
+            } @else {
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>📦 Descargar ZIP Completo</span>
+            }
+          </button>
+        }
+      </div>
+
+    </div>
+
+    <!-- Contenedor Principal según Pestaña -->
+    <div class="flex-1 overflow-hidden flex flex-col">
+      
+      <!-- PESTAÑA 1: EXPLORADOR DE CÓDIGO FUENTE -->
+      @if (activeTab() === 'CODE' && generated(); as gen) {
+        <div class="flex-1 flex overflow-hidden">
+          
+          <!-- Panel Izquierdo: Árbol de Archivos -->
+          <aside class="w-72 bg-slate-950/90 border-r border-slate-800 flex flex-col text-xs overflow-y-auto p-3 space-y-3">
+            
+            <!-- Grupo: Configuración y Raíz -->
+            <div>
+              <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1 px-2 flex items-center space-x-1">
+                <span>⚙️ Raíz del Proyecto</span>
+              </div>
+              <div class="space-y-0.5 font-mono text-[11px]">
+                <button 
+                  (click)="selectFile('pom.xml', gen.pomXml)"
+                  class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                  [class.bg-emerald-500/20]="selectedFile()?.path === 'pom.xml'"
+                  [class.text-emerald-300]="selectedFile()?.path === 'pom.xml'"
+                  [class.text-slate-300]="selectedFile()?.path !== 'pom.xml'"
+                  [class.hover:bg-slate-800]="selectedFile()?.path !== 'pom.xml'">
+                  <span>📄</span>
+                  <span>pom.xml</span>
+                </button>
+
+                <button 
+                  (click)="selectFile('application.properties', gen.applicationProperties)"
+                  class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                  [class.bg-emerald-500/20]="selectedFile()?.path === 'application.properties'"
+                  [class.text-emerald-300]="selectedFile()?.path === 'application.properties'"
+                  [class.text-slate-300]="selectedFile()?.path !== 'application.properties'"
+                  [class.hover:bg-slate-800]="selectedFile()?.path !== 'application.properties'">
+                  <span>⚙️</span>
+                  <span>application.properties</span>
+                </button>
+
+                <button 
+                  (click)="selectFile('schema.sql', gen.schemaSql)"
+                  class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                  [class.bg-emerald-500/20]="selectedFile()?.path === 'schema.sql'"
+                  [class.text-emerald-300]="selectedFile()?.path === 'schema.sql'"
+                  [class.text-slate-300]="selectedFile()?.path !== 'schema.sql'"
+                  [class.hover:bg-slate-800]="selectedFile()?.path !== 'schema.sql'">
+                  <span>🐘</span>
+                  <span>schema.sql (PostgreSQL)</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Grupo: Model (JPA Entities) -->
+            <div>
+              <div class="text-[10px] uppercase font-bold text-teal-400 tracking-wider mb-1 px-2 flex items-center justify-between">
+                <span>🏛️ model/ (JPA @Entity)</span>
+                <span class="text-[9px] bg-teal-500/20 px-1.5 rounded text-teal-300">{{ gen.entityFiles.length }}</span>
+              </div>
+              <div class="space-y-0.5 font-mono text-[11px]">
+                @for (f of gen.entityFiles; track f.path) {
+                  <button 
+                    (click)="selectFile(f.path, f.content)"
+                    class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                    [class.bg-teal-500/20]="selectedFile()?.path === f.path"
+                    [class.text-teal-300]="selectedFile()?.path === f.path"
+                    [class.text-slate-300]="selectedFile()?.path !== f.path"
+                    [class.hover:bg-slate-800]="selectedFile()?.path !== f.path">
+                    <span>☕</span>
+                    <span class="truncate">{{ f.className }}.java</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Grupo: Controller (REST API) -->
+            <div>
+              <div class="text-[10px] uppercase font-bold text-blue-400 tracking-wider mb-1 px-2 flex items-center justify-between">
+                <span>🌐 controller/ (@RestController)</span>
+                <span class="text-[9px] bg-blue-500/20 px-1.5 rounded text-blue-300">{{ gen.controllerFiles.length }}</span>
+              </div>
+              <div class="space-y-0.5 font-mono text-[11px]">
+                @for (f of gen.controllerFiles; track f.path) {
+                  <button 
+                    (click)="selectFile(f.path, f.content)"
+                    class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                    [class.bg-blue-500/20]="selectedFile()?.path === f.path"
+                    [class.text-blue-300]="selectedFile()?.path === f.path"
+                    [class.text-slate-300]="selectedFile()?.path !== f.path"
+                    [class.hover:bg-slate-800]="selectedFile()?.path !== f.path">
+                    <span>⚡</span>
+                    <span class="truncate">{{ f.className }}Controller.java</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Grupo: Service (Lógica de Negocio) -->
+            <div>
+              <div class="text-[10px] uppercase font-bold text-indigo-400 tracking-wider mb-1 px-2 flex items-center justify-between">
+                <span>💼 service/ (@Service)</span>
+                <span class="text-[9px] bg-indigo-500/20 px-1.5 rounded text-indigo-300">{{ gen.serviceFiles.length }}</span>
+              </div>
+              <div class="space-y-0.5 font-mono text-[11px]">
+                @for (f of gen.serviceFiles; track f.path) {
+                  <button 
+                    (click)="selectFile(f.path, f.content)"
+                    class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                    [class.bg-indigo-500/20]="selectedFile()?.path === f.path"
+                    [class.text-indigo-300]="selectedFile()?.path === f.path"
+                    [class.text-slate-300]="selectedFile()?.path !== f.path"
+                    [class.hover:bg-slate-800]="selectedFile()?.path !== f.path">
+                    <span>⚙️</span>
+                    <span class="truncate">{{ f.className }}Service.java</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Grupo: Repository (Spring Data JPA) -->
+            <div>
+              <div class="text-[10px] uppercase font-bold text-amber-400 tracking-wider mb-1 px-2 flex items-center justify-between">
+                <span>🗄️ repository/ (JpaRepository)</span>
+                <span class="text-[9px] bg-amber-500/20 px-1.5 rounded text-amber-300">{{ gen.repositoryFiles.length }}</span>
+              </div>
+              <div class="space-y-0.5 font-mono text-[11px]">
+                @for (f of gen.repositoryFiles; track f.path) {
+                  <button 
+                    (click)="selectFile(f.path, f.content)"
+                    class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                    [class.bg-amber-500/20]="selectedFile()?.path === f.path"
+                    [class.text-amber-300]="selectedFile()?.path === f.path"
+                    [class.text-slate-300]="selectedFile()?.path !== f.path"
+                    [class.hover:bg-slate-800]="selectedFile()?.path !== f.path">
+                    <span>📦</span>
+                    <span class="truncate">{{ f.className }}Repository.java</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Grupo: DTO -->
+            <div>
+              <div class="text-[10px] uppercase font-bold text-purple-400 tracking-wider mb-1 px-2 flex items-center justify-between">
+                <span>📦 dto/ (Data Transfer)</span>
+                <span class="text-[9px] bg-purple-500/20 px-1.5 rounded text-purple-300">{{ gen.dtoFiles.length }}</span>
+              </div>
+              <div class="space-y-0.5 font-mono text-[11px]">
+                @for (f of gen.dtoFiles; track f.path) {
+                  <button 
+                    (click)="selectFile(f.path, f.content)"
+                    class="w-full text-left px-2.5 py-1.5 rounded-lg transition truncate flex items-center space-x-1.5"
+                    [class.bg-purple-500/20]="selectedFile()?.path === f.path"
+                    [class.text-purple-300]="selectedFile()?.path === f.path"
+                    [class.text-slate-300]="selectedFile()?.path !== f.path"
+                    [class.hover:bg-slate-800]="selectedFile()?.path !== f.path">
+                    <span>📋</span>
+                    <span class="truncate">{{ f.className }}DTO.java</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+          </aside>
+
+          <!-- Panel Derecho: Visor de Código -->
+          <main class="flex-1 flex flex-col bg-slate-900 overflow-hidden">
+            <!-- Barra superior del archivo activo -->
+            <div class="px-4 py-2 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
+              <div class="flex items-center space-x-2 font-mono text-xs text-slate-300 truncate">
+                <span class="text-slate-500">Ruta:</span>
+                <span class="text-teal-400 font-semibold truncate">{{ selectedFile()?.path }}</span>
+              </div>
+              
+              <button 
+                (click)="copyCode()"
+                class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center space-x-1 border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <span>{{ copied() ? '✓ ¡Copiado!' : 'Copiar Código' }}</span>
+              </button>
+            </div>
+
+            <!-- Contenido del Código -->
+            <div class="flex-1 p-4 overflow-auto font-mono text-xs text-slate-200 bg-slate-950/60 leading-relaxed selection:bg-teal-500/30">
+              <pre class="whitespace-pre"><code>{{ selectedFile()?.content }}</code></pre>
+            </div>
+          </main>
+
+        </div>
+      }
+
+      <!-- PESTAÑA 2: COLECCIÓN DE POSTMAN -->
+      @if (activeTab() === 'POSTMAN' && generated(); as gen) {
+        <div class="flex-1 flex flex-col p-5 bg-slate-900 overflow-y-auto space-y-4 text-xs">
+          <div class="p-4 bg-orange-950/30 border border-orange-800/60 rounded-xl flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-orange-300">Colección de Postman v2.1.0 Lista para Pruebas CRUD</h3>
+              <p class="text-slate-300 text-xs mt-1">
+                Contiene <strong>{{ classes().length * 5 }} peticiones automáticas</strong> (Listar, Buscar por ID, Crear, Actualizar y Eliminar) con cuerpos JSON de ejemplo.
+              </p>
+            </div>
+            <button 
+              (click)="descargarPostmanSolo()"
+              class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition shadow flex items-center space-x-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Descargar postman_collection.json</span>
+            </button>
+          </div>
+
+          <div class="border border-slate-800 rounded-xl overflow-hidden flex-1 flex flex-col">
+            <div class="px-4 py-2 bg-slate-950 border-b border-slate-800 text-[11px] font-mono text-slate-400">
+              Vista previa del archivo JSON de colección Postman:
+            </div>
+            <div class="flex-1 p-4 bg-slate-950/60 overflow-auto font-mono text-[11px] text-orange-200/90 leading-relaxed">
+              <pre class="whitespace-pre"><code>{{ gen.postmanCollectionJson }}</code></pre>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- PESTAÑA 3: SCRIPT SQL POSTGRESQL -->
+      @if (activeTab() === 'SCHEMA' && generated(); as gen) {
+        <div class="flex-1 flex flex-col p-5 bg-slate-900 overflow-y-auto space-y-4 text-xs">
+          <div class="p-4 bg-blue-950/30 border border-blue-800/60 rounded-xl flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-blue-300">Script DDL para Base de Datos PostgreSQL</h3>
+              <p class="text-slate-300 text-xs mt-1">
+                Crea las <strong>{{ classes().length }} tablas</strong> con tipos oficiales de Postgres (BIGSERIAL, VARCHAR, NUMERIC, etc.) y las tablas intermedias de relaciones.
+              </p>
+            </div>
+            <button 
+              (click)="descargarSqlSolo()"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition shadow flex items-center space-x-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Descargar schema.sql</span>
+            </button>
+          </div>
+
+          <div class="border border-slate-800 rounded-xl overflow-hidden flex-1 flex flex-col">
+            <div class="px-4 py-2 bg-slate-950 border-b border-slate-800 text-[11px] font-mono text-slate-400">
+              Vista previa del Script DDL de PostgreSQL:
+            </div>
+            <div class="flex-1 p-4 bg-slate-950/60 overflow-auto font-mono text-[11px] text-blue-200/90 leading-relaxed">
+              <pre class="whitespace-pre"><code>{{ gen.schemaSql }}</code></pre>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- PESTAÑA 4: HISTORIAL DE GENERACIONES PREVIAS (SOLO PROPIETARIO) -->
+      @if (activeTab() === 'HISTORY' && isOwner()) {
+        <div class="flex-1 p-5 bg-slate-900 overflow-y-auto space-y-4 text-xs">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-white">Mi Historial de Proyectos Backend Generados</h3>
+              <p class="text-slate-400 text-xs">
+                Registros privados del propietario para re-descargar colecciones de Postman o scripts SQL generados anteriormente.
+              </p>
+            </div>
+            <span class="text-xs font-mono text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-lg">
+              Total Generaciones: {{ filteredHistory().length }}
+            </span>
+          </div>
+
+          @if (filteredHistory().length === 0) {
+            <div class="p-8 text-center text-slate-500 space-y-2">
+              <div class="text-3xl">📦</div>
+              <p>Aún no has generado ningún archivo ZIP en este proyecto.</p>
+              <p class="text-[11px] text-slate-600">Al presionar "Descargar ZIP Completo" se registrará automáticamente aquí.</p>
+            </div>
+          } @else {
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              @for (item of filteredHistory(); track item.id) {
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-3 shadow-md hover:border-purple-500/40 transition">
+                  <div>
+                    <div class="flex items-center justify-between">
+                      <h4 class="font-bold text-white text-sm truncate">{{ item.projectName }}</h4>
+                      <span class="text-[10px] text-slate-500 font-mono">
+                        {{ item.generatedAt | date:'dd/MM/yyyy HH:mm' }}
+                      </span>
+                    </div>
+
+                    <div class="flex items-center space-x-2 mt-1.5 text-[11px] text-slate-400">
+                      <span>📊 {{ item.classesCount }} Entidades</span>
+                      <span>•</span>
+                      <span>🔗 {{ item.relationsCount }} Relaciones</span>
+                    </div>
+
+                    <div class="flex flex-wrap gap-1 mt-2">
+                      @for (c of item.classNames; track c) {
+                        <span class="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-[10px] font-mono text-teal-300">
+                          {{ c }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="pt-2 border-t border-slate-900 flex items-center justify-between">
+                    <button 
+                      (click)="reDescargarPostmanDesdeHistorial(item)"
+                      class="px-2.5 py-1 rounded bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 border border-orange-500/30 text-[11px] font-semibold transition flex items-center space-x-1">
+                      <span>📮 Postman JSON</span>
+                    </button>
+
+                    <button 
+                      (click)="reDescargarSqlDesdeHistorial(item)"
+                      class="px-2.5 py-1 rounded bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 text-[11px] font-semibold transition flex items-center space-x-1">
+                      <span>🐘 Script SQL</span>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+    </div>
+
+    <!-- Pie del Modal -->
+    <footer class="p-3.5 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs">
+      <div class="flex items-center space-x-2 text-slate-400 text-[11px]">
+        <span>Diagrama actual:</span>
+        <span class="text-teal-300 font-semibold">{{ classes().length }} clases</span>
+        <span>•</span>
+        <span class="text-teal-300 font-semibold">{{ relations().length }} relaciones</span>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button 
+          (click)="cerrar()" 
+          class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition">
+          Cerrar
+        </button>
+
+        @if (!canDownload()) {
+          <span class="px-4 py-1.5 rounded-lg bg-slate-800/80 text-amber-400 text-xs font-semibold border border-amber-500/30 cursor-not-allowed flex items-center space-x-1.5">
+            <span>🔒</span>
+            <span>Descarga Restringida por el Dueño</span>
+          </span>
+        } @else {
+          <button 
+            (click)="descargarProyectoZip()" 
+            [disabled]="isBuildingZip()"
+            class="px-5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-900/40 transition flex items-center space-x-1.5 disabled:opacity-50">
+            @if (isBuildingZip()) {
+              <div class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              <span>Generando ZIP...</span>
+            } @else {
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              <span>Descargar Backend Spring Boot Completo (.ZIP)</span>
+            }
+          </button>
+        }
+      </div>
+    </footer>
+
+  </div>
+
+</div>

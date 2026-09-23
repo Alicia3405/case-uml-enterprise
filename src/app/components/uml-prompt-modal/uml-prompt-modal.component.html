@@ -1,0 +1,250 @@
+<div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 select-none animate-fadeIn">
+  
+  <div class="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-2xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden animate-scaleUp">
+    
+    <!-- Encabezado Compacto, Espacioso y Limpio -->
+    <header class="p-5 bg-slate-950/95 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-center space-x-3.5">
+        <div class="p-2.5 rounded-2xl bg-purple-600/20 border border-purple-500/40 text-purple-300 flex-shrink-0 shadow-md">
+          <span class="text-xl">🤖</span>
+        </div>
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="text-base font-extrabold text-white tracking-wide">Generador de Diagramas con IA (Voz)</h2>
+            <span class="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-mono shadow-sm">
+              OMG UML 2.5
+            </span>
+          </div>
+          <p class="text-xs text-slate-300 leading-normal">
+            Díctale el sistema que necesitas y la IA sintetizará clases, atributos y relaciones automáticamente.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2.5 self-end sm:self-center flex-shrink-0">
+        <!-- Toggle Modo Manual / Ejemplos -->
+        <button 
+          (click)="toggleManualMode()" 
+          type="button"
+          class="px-3 py-1.5 text-xs font-bold rounded-xl text-purple-200 hover:text-white bg-slate-800/90 hover:bg-slate-800 border border-purple-500/30 transition flex items-center space-x-1.5 shadow-sm"
+          [title]="voiceState() === 'manual' ? 'Volver a dictado por voz' : 'Escribir texto o ver ejemplos'">
+          @if (voiceState() === 'manual') {
+            <span>🎙️ Modo Voz</span>
+          } @else {
+            <span>⌨️ Escribir por texto</span>
+          }
+        </button>
+
+        <!-- Botón Cerrar -->
+        <button (click)="cerrar()" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-slate-800 border border-slate-800 transition" title="Cerrar ventana">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- CUERPO PRINCIPAL -->
+    <div class="p-5 overflow-y-auto space-y-4 text-xs text-slate-200">
+
+      <!-- ================================================================= -->
+      <!-- CASO 1: MODO VOZ ESTILO YOUTUBE (POR DEFECTO) -->
+      <!-- ================================================================= -->
+      @if (voiceState() !== 'manual') {
+        
+        <!-- Centro del Micrófono (YouTube Style) -->
+        <div class="py-4 flex flex-col items-center justify-center text-center space-y-4">
+          
+          <!-- Contenedor del Micrófono con Ondas Expansivas Concétricas -->
+          <div class="relative flex items-center justify-center w-36 h-36">
+            @if (voiceState() === 'listening') {
+              <!-- Anillos de onda pulsante concéntrica -->
+              <div class="absolute inset-0 rounded-full bg-rose-500/20 mic-ripple-1 pointer-events-none"></div>
+              <div class="absolute inset-0 rounded-full bg-purple-500/20 mic-ripple-2 pointer-events-none"></div>
+              <div class="absolute inset-0 rounded-full bg-rose-500/15 mic-ripple-3 pointer-events-none"></div>
+            }
+
+            <!-- Botón Central de Micrófono -->
+            <button
+              (click)="toggleMicClick()"
+              type="button"
+              class="relative z-10 w-24 h-24 rounded-full flex items-center justify-center transition transform active:scale-95 shadow-2xl focus:outline-none"
+              [class.bg-gradient-to-tr]="true"
+              [class.from-rose-600]="voiceState() === 'listening'"
+              [class.to-purple-600]="voiceState() === 'listening'"
+              [class.mic-pulse-glow]="voiceState() === 'listening'"
+              [class.from-amber-600]="voiceState() === 'no_speech'"
+              [class.to-slate-800]="voiceState() === 'no_speech'"
+              [class.from-purple-700]="voiceState() === 'ready' || voiceState() === 'analyzing'"
+              [class.to-indigo-800]="voiceState() === 'ready' || voiceState() === 'analyzing'">
+              
+              @if (voiceState() === 'analyzing') {
+                <span class="text-3xl animate-spin">✨</span>
+              } @else if (voiceState() === 'listening') {
+                <svg class="w-10 h-10 text-white animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+              } @else {
+                <!-- Icono cuando está apagado o en listo -->
+                <svg class="w-10 h-10 text-white/90" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+              }
+            </button>
+          </div>
+
+          <!-- Mensajes de Estado del Reconocimiento -->
+          <div>
+            @if (voiceState() === 'listening') {
+              <div class="flex items-center justify-center space-x-2 text-rose-400 font-bold text-sm">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                <span>Escuchando...</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1 max-w-md">
+                Di por ejemplo: <em>"Crear sistema de veterinaria con Clientes, Mascotas y Citas Médicas"</em>
+              </p>
+            } @else if (voiceState() === 'analyzing') {
+              <div class="flex items-center justify-center space-x-2 text-purple-400 font-bold text-sm">
+                <span>✨ Sintetizando arquitectura con IA...</span>
+              </div>
+            } @else if (voiceState() === 'no_speech') {
+              <div class="text-amber-400 font-bold text-sm">
+                ⚠️ No se escuchó nada
+              </div>
+              <p class="text-xs text-slate-400 mt-1">
+                Toca el micrófono para intentar de nuevo.
+              </p>
+            } @else if (voiceState() === 'ready') {
+              <div class="text-emerald-400 font-bold text-sm flex items-center justify-center space-x-1.5">
+                <span>✅ Diagrama reconocido con éxito</span>
+              </div>
+            }
+          </div>
+
+          <!-- Transcripción en Tiempo Real Mientras Habla -->
+          @if (transcript()) {
+            <div class="w-full max-w-lg p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-slate-200 text-xs shadow-inner animate-fadeIn">
+              <span class="text-purple-400 font-bold mr-1">Tú dijiste:</span>
+              <span class="italic text-white">« {{ transcript() }} »</span>
+            </div>
+          }
+
+        </div>
+
+      } @else {
+
+        <!-- ================================================================= -->
+        <!-- CASO 2: MODO MANUAL / TEXTO / CASOS DEMO -->
+        <!-- ================================================================= -->
+        <div class="space-y-3 animate-fadeIn">
+          <label class="text-xs font-bold text-slate-300">
+            ✍️ Escribe el sistema o selecciona un caso de prueba:
+          </label>
+
+          <textarea 
+            [ngModel]="promptText()"
+            (ngModelChange)="onPromptChange($event)"
+            rows="3"
+            placeholder="Ejemplo: Crear sistema de facturación con Cliente, Factura, DetalleFactura y Producto..."
+            class="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl p-3 text-xs text-white placeholder-slate-500 outline-none transition resize-none">
+          </textarea>
+
+          <!-- Casos de Demostración Rápida -->
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-bold text-slate-400">⚡ Casos de prueba rápida (1-Clic):</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              @for (preset of presets; track preset.id) {
+                <button 
+                  (click)="selectPreset(preset.prompt)"
+                  type="button"
+                  class="p-2 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-purple-500/50 hover:bg-slate-900 text-left transition flex items-center justify-between group">
+                  <span class="font-bold text-[11px] text-white group-hover:text-purple-300">{{ preset.title }}</span>
+                  <span class="text-purple-400 text-xs">→</span>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+      }
+
+      <!-- ================================================================= -->
+      <!-- CUADRO DE PREVISUALIZACIÓN Y CONFIRMACIÓN (COMO EN LA IMAGEN 2) -->
+      <!-- ================================================================= -->
+      @if (preview(); as prev) {
+        <div class="p-4 rounded-2xl bg-purple-950/30 border border-purple-500/40 space-y-3 animate-fadeIn shadow-xl">
+          
+          <!-- Encabezado con Nombre y Conteo -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-base text-purple-400">📐</span>
+              <h3 class="text-xs font-bold text-white tracking-wide">{{ prev.diagramName }}</h3>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold border border-purple-500/40">
+              {{ prev.classes.length }} clases &bull; {{ prev.relations.length }} relaciones
+            </span>
+          </div>
+
+          <!-- Resumen de Clases y Relaciones Inferidas -->
+          <p class="text-[11px] text-slate-300 leading-relaxed font-medium">
+            {{ prev.classes.length }} Clases generadas ({{ getClassNamesList(prev) }}) con {{ prev.relations.length }} relaciones inferidas.
+          </p>
+
+          <!-- Badges de Clases Detectadas -->
+          <div class="flex flex-wrap gap-1.5 pt-0.5">
+            @for (cls of prev.classes; track cls.id) {
+              <div class="px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-center space-x-1.5 text-[11px]">
+                <span class="text-amber-400">📦</span>
+                <span class="font-bold text-white">{{ cls.name }}</span>
+                <span class="text-slate-400 text-[10px] font-mono">({{ cls.attributes.length }} attrs)</span>
+              </div>
+            }
+          </div>
+
+        </div>
+      }
+
+    </div>
+
+    <!-- PIE DEL MODAL (OPCIONES Y BOTONES DE ACCIÓN) -->
+    <footer class="p-4 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+      
+      <!-- Checkbox Limpiar y Reemplazar -->
+      <label class="flex items-center space-x-2 cursor-pointer text-slate-300 select-none">
+        <input 
+          type="checkbox" 
+          [ngModel]="replaceCurrent()" 
+          (ngModelChange)="replaceCurrent.set($event)"
+          class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-purple-600 focus:ring-purple-500 cursor-pointer"
+        />
+        <span class="font-bold text-[11px] tracking-wide uppercase text-slate-300">
+          LIMPIAR Y REEMPLAZAR EL LIENZO ACTUAL CON EL NUEVO MODELO
+        </span>
+      </label>
+
+      <!-- Botones de Acción -->
+      <div class="flex items-center space-x-2">
+        
+        <!-- Botón Cancelar -->
+        <button 
+          (click)="cerrar()"
+          type="button"
+          class="px-4 py-2 bg-slate-800/80 hover:bg-slate-800 text-slate-300 font-semibold rounded-xl transition border border-slate-700">
+          Cancelar
+        </button>
+
+        <!-- Botón Generar Diagrama -->
+        <button 
+          (click)="ejecutarGeneracion()"
+          [disabled]="!preview()"
+          class="px-5 py-2 bg-gradient-to-r from-purple-600 via-teal-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 disabled:opacity-40 text-white font-bold rounded-xl shadow-lg shadow-purple-950/40 transition flex items-center space-x-2 cursor-pointer disabled:cursor-not-allowed">
+          <span>✨ Generar Diagrama en el Lienzo</span>
+        </button>
+
+      </div>
+    </footer>
+
+  </div>
+</div>

@@ -1,0 +1,62 @@
+<div class="wf-page wf-view wf-dashboard-v2">
+  <app-dashboard-header
+    [role]="authService.currentUser()?.rol || ''"
+    [departamento]="authService.currentUser()?.departamento || ''"
+    [canCreate]="authService.currentUser()?.rol === 'SOLICITANTE'"
+    [totalSolicitudes]="totalSolicitudes()"
+    [slaCritico]="contadoresSla()['VENCIDO']"
+    [totalUrgentes]="totalUrgentes()"
+    [onlineVisible]="presenciaResumen()?.totalOnlineVisible || 0"
+    [tasaCierre]="tasaCierre()"
+    [solicitudesEnRiesgo]="solicitudesEnRiesgo()"
+    [promedioEventos]="promedioEventos()"
+    [activeView]="activeView()"
+    (viewChanged)="cambiarVista($event)" />
+
+  <div class="wf-dashboard-content">
+    @if (activeView() === 'OPERATIVO') {
+      <app-dashboard-operativo
+        [estadosFlujo]="estadosFlujo"
+        [contadoresEstado]="contadoresEstado()"
+        [filtroEstado]="filtroEstadoTabla()"
+        [stats]="metadata()"
+        [diagramConfig]="diagramConfig()"
+        (estadoToggled)="filtrarEstadoDesdeOperativo($event)"
+        (selectionEnded)="onDiagramSelectionEnded($event)" />
+    } @else {
+      <app-dashboard-registros
+        [solicitudes]="solicitudes()"
+        [searchControl]="searchControl"
+        [estadosFlujo]="estadosFlujo"
+        [estadosSlaFiltro]="estadosSlaFiltro"
+        [estadosSlaVisibles]="estadosSlaVisibles"
+        [filtroEstado]="filtroEstadoTabla()"
+        [filtroSla]="filtroSlaTabla()"
+        [contadoresSla]="contadoresSla()"
+        [registrosCriticos]="registrosCriticos()"
+        [topDepartamentos]="topDepartamentos()"
+        [maxCargaDepartamentos]="maxCargaDepartamentos()"
+        [usuariosOnlineVisibles]="usuariosOnlineVisibles()"
+        [presenciaGeneradoEn]="presenciaResumen()?.generadoEn || null"
+        (buscarRequested)="buscarSolicitudes()"
+        (limpiarBusquedaRequested)="limpiarBusqueda()"
+        (estadoToggled)="aplicarFiltroEstado($event)"
+        (slaToggled)="aplicarFiltroSla($event)"
+        (limpiarFiltrosRequested)="limpiarFiltrosTabla()" />
+    }
+  </div>
+
+  @defer (on idle) {
+    <app-flow-inspector
+      [estadoDetalle]="detalleEstadoSeleccionado()"
+      [transicionDetalle]="detalleTransicionSeleccionada()"
+      [estadoObjetivo]="estadoObjetivoSeleccionado()"
+      [hasCaseTarget]="!!solicitudObjetivoSeleccionada()"
+      [contadores]="contadoresEstado()"
+      (reset)="limpiarSeleccionDiagrama()"
+      (enterFlow)="entrarAlEstadoDesdeSeleccion()"
+      (openCase)="abrirSolicitudObjetivoSeleccionada()" />
+  } @placeholder {
+    <div class="wf-defer-placeholder wf-defer-placeholder--compact">Preparando inspector...</div>
+  }
+</div>

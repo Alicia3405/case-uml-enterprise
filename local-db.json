@@ -1,0 +1,224 @@
+{
+  "usuarios": [
+    {
+      "id": "usr-1",
+      "username": "admin",
+      "password": "admin",
+      "nombreCompleto": "Administrador del Sistema",
+      "rol": "ADMINISTRADOR",
+      "departamento": "Sistemas",
+      "fechaCreacion": "2026-09-14T14:45:31.069Z",
+      "avatarUrl": ""
+    },
+    {
+      "id": "usr-2",
+      "username": "revisor",
+      "password": "revisor",
+      "nombreCompleto": "Revisor de RRHH",
+      "rol": "REVISOR",
+      "departamento": "Recursos Humanos",
+      "fechaCreacion": "2026-09-14T14:45:31.071Z",
+      "avatarUrl": ""
+    },
+    {
+      "id": "usr-3",
+      "username": "solicitante",
+      "password": "solicitante",
+      "nombreCompleto": "Carlos Solicitante",
+      "rol": "SOLICITANTE",
+      "departamento": "Ventas",
+      "fechaCreacion": "2026-09-14T14:45:31.071Z",
+      "avatarUrl": ""
+    }
+  ],
+  "departamentos": [
+    {
+      "id": "dep-1",
+      "nombre": "Sistemas",
+      "descripcion": "Área de TI y soporte técnico",
+      "activo": true,
+      "creadoPor": "admin",
+      "fechaCreacion": "2026-09-14T14:45:31.071Z"
+    },
+    {
+      "id": "dep-2",
+      "nombre": "Recursos Humanos",
+      "descripcion": "Gestión de talento humano y contratos",
+      "activo": true,
+      "creadoPor": "admin",
+      "fechaCreacion": "2026-09-14T14:45:31.071Z"
+    },
+    {
+      "id": "dep-3",
+      "nombre": "Ventas",
+      "descripcion": "Comercialización y prospección de clientes",
+      "activo": true,
+      "creadoPor": "admin",
+      "fechaCreacion": "2026-09-14T14:45:31.071Z"
+    },
+    {
+      "id": "dep-4",
+      "nombre": "Finanzas",
+      "descripcion": "Facturación, presupuestos y compras",
+      "activo": true,
+      "creadoPor": "admin",
+      "fechaCreacion": "2026-09-14T14:45:31.071Z"
+    }
+  ],
+  "solicitudes": [
+    {
+      "id": "sol-101",
+      "codigoSeguimiento": "SOL-2026-001",
+      "titulo": "Renovación de Licencias de Software",
+      "descripcion": "Solicitud para renovación de licencias anuales de desarrollo.",
+      "prioridad": "ALTA",
+      "estado": "PENDIENTE",
+      "departamentoActual": "Sistemas",
+      "usuarioCreador": "solicitante",
+      "usuarioAsignado": "admin",
+      "workflowDefinitionId": "wf-general",
+      "tareaActualId": "task-revision",
+      "tareaActualNombre": "Revisión Técnica",
+      "fechaCreacion": "2026-09-13T14:45:31.071Z",
+      "fechaActualizacion": "2026-09-14T14:45:31.071Z",
+      "fechaLimiteAtencion": "2026-09-16T14:45:31.071Z",
+      "estadoSla": "EN_TIEMPO",
+      "minutosRestantesSla": 2880,
+      "totalEventos": 1,
+      "historial": [
+        {
+          "fecha": "2026-09-13T14:45:31.071Z",
+          "estadoAnterior": "PENDIENTE",
+          "estadoNuevo": "PENDIENTE",
+          "usuarioResponsable": "solicitante",
+          "rolUsuario": "SOLICITANTE",
+          "comentario": "Creación inicial de la solicitud."
+        }
+      ],
+      "archivosAdjuntos": []
+    },
+    {
+      "id": "sol-102",
+      "codigoSeguimiento": "SOL-2026-002",
+      "titulo": "Contratación Desarrollador Frontend",
+      "descripcion": "Apertura de vacante para proyecto Angular 21.",
+      "prioridad": "MEDIA",
+      "estado": "EN_REVISION",
+      "departamentoActual": "Recursos Humanos",
+      "usuarioCreador": "solicitante",
+      "usuarioAsignado": "revisor",
+      "workflowDefinitionId": "wf-general",
+      "tareaActualId": "task-entrevista",
+      "tareaActualNombre": "Filtro Curricular",
+      "fechaCreacion": "2026-09-12T14:45:31.071Z",
+      "fechaActualizacion": "2026-09-14T14:45:31.071Z",
+      "fechaLimiteAtencion": "2026-09-15T14:45:31.071Z",
+      "estadoSla": "EN_TIEMPO",
+      "minutosRestantesSla": 1440,
+      "totalEventos": 2,
+      "historial": [
+        {
+          "fecha": "2026-09-12T14:45:31.071Z",
+          "estadoAnterior": "PENDIENTE",
+          "estadoNuevo": "PENDIENTE",
+          "usuarioResponsable": "solicitante",
+          "rolUsuario": "SOLICITANTE",
+          "comentario": "Solicitud enviada para aprobación."
+        },
+        {
+          "fecha": "2026-09-14T02:45:31.071Z",
+          "estadoAnterior": "PENDIENTE",
+          "estadoNuevo": "EN_REVISION",
+          "usuarioResponsable": "revisor",
+          "rolUsuario": "REVISOR",
+          "comentario": "Iniciando revisión de candidatos."
+        }
+      ],
+      "archivosAdjuntos": []
+    },
+    {
+      "id": "sol-103",
+      "codigoSeguimiento": "SOL-2026-003",
+      "titulo": "Aprobación de Viáticos para Conferencia",
+      "descripcion": "Gastos de viaje para evento de tecnología.",
+      "prioridad": "BAJA",
+      "estado": "APROBADO",
+      "departamentoActual": "Finanzas",
+      "usuarioCreador": "solicitante",
+      "usuarioAsignado": "admin",
+      "workflowDefinitionId": "wf-general",
+      "tareaActualId": "task-completado",
+      "tareaActualNombre": "Finalizado",
+      "fechaCreacion": "2026-09-11T14:45:31.071Z",
+      "fechaActualizacion": "2026-09-14T08:45:31.071Z",
+      "estadoSla": "CERRADO",
+      "minutosRestantesSla": 0,
+      "totalEventos": 3,
+      "historial": [
+        {
+          "fecha": "2026-09-11T14:45:31.071Z",
+          "estadoAnterior": "PENDIENTE",
+          "estadoNuevo": "PENDIENTE",
+          "usuarioResponsable": "solicitante",
+          "rolUsuario": "SOLICITANTE",
+          "comentario": "Ingreso de presupuestos."
+        },
+        {
+          "fecha": "2026-09-13T08:45:31.071Z",
+          "estadoAnterior": "PENDIENTE",
+          "estadoNuevo": "EN_REVISION",
+          "usuarioResponsable": "admin",
+          "rolUsuario": "ADMINISTRADOR",
+          "comentario": "Revisión contable aprobada."
+        },
+        {
+          "fecha": "2026-09-14T08:45:31.071Z",
+          "estadoAnterior": "EN_REVISION",
+          "estadoNuevo": "APROBADO",
+          "usuarioResponsable": "admin",
+          "rolUsuario": "ADMINISTRADOR",
+          "comentario": "Transferencia realizada con éxito."
+        }
+      ],
+      "archivosAdjuntos": []
+    }
+  ],
+  "documentos": [
+    {
+      "id": "doc-1",
+      "solicitudId": "sol-101",
+      "nombre": "Términos de Referencia Licencias",
+      "descripcion": "Especificación técnica de herramientas requeridas.",
+      "tipo": "COLLABORATIVE",
+      "versionActual": 1,
+      "creadoPor": "solicitante",
+      "fechaCreacion": "2026-09-14T14:45:31.071Z",
+      "fechaActualizacion": "2026-09-14T14:45:31.071Z",
+      "bloqueadoPor": null,
+      "bloqueadoAt": null,
+      "contenidoColaborativo": "<h2>Requisitos Técnicos</h2><p>1. Licencia JetBrains All Products</p><p>2. Acceso a servicios Cloud GCP y Firebase.</p>",
+      "versiones": [
+        {
+          "version": 1,
+          "nombreOriginal": "Términos de Referencia Licencias",
+          "tipoContenido": "text/html",
+          "tamanoBytes": 150,
+          "subidoPor": "solicitante",
+          "fechaSubida": "2026-09-14T14:45:31.071Z",
+          "comentarioCambio": "Borrador inicial"
+        }
+      ]
+    }
+  ],
+  "bpmnDiagram": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\" xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\" xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\" id=\"Definitions_1\" targetNamespace=\"http://bpmn.io/schema/bpmn\">\n  <bpmn:process id=\"Process_1\" isExecutable=\"true\">\n    <bpmn:startEvent id=\"StartEvent_1\" name=\"Inicio\">\n      <bpmn:outgoing>Flow_1</bpmn:outgoing>\n    </bpmn:startEvent>\n    <bpmn:userTask id=\"Task_1\" name=\"Crear Solicitud\">\n      <bpmn:incoming>Flow_1</bpmn:incoming>\n      <bpmn:outgoing>Flow_2</bpmn:outgoing>\n    </bpmn:userTask>\n    <bpmn:sequenceFlow id=\"Flow_1\" sourceRef=\"StartEvent_1\" targetRef=\"Task_1\" />\n    <bpmn:userTask id=\"Task_2\" name=\"Revisar Solicitud\">\n      <bpmn:incoming>Flow_2</bpmn:incoming>\n      <bpmn:outgoing>Flow_3</bpmn:outgoing>\n    </bpmn:userTask>\n    <bpmn:sequenceFlow id=\"Flow_2\" sourceRef=\"Task_1\" targetRef=\"Task_2\" />\n    <bpmn:endEvent id=\"EndEvent_1\" name=\"Finalizado\">\n      <bpmn:incoming>Flow_3</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:sequenceFlow id=\"Flow_3\" sourceRef=\"Task_2\" targetRef=\"EndEvent_1\" />\n  </bpmn:process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_1\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_1\" bpmnElement=\"Process_1\">\n      <bpmndi:BPMNShape id=\"_BPMNShape_StartEvent_2\" bpmnElement=\"StartEvent_1\">\n        <dc:Bounds x=\"180\" y=\"160\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_Task1\" bpmnElement=\"Task_1\">\n        <dc:Bounds x=\"270\" y=\"138\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Activity_Task2\" bpmnElement=\"Task_2\">\n        <dc:Bounds x=\"430\" y=\"138\" width=\"100\" height=\"80\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"Event_End\" bpmnElement=\"EndEvent_1\">\n        <dc:Bounds x=\"590\" y=\"160\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"Flow_1_di\" bpmnElement=\"Flow_1\">\n        <di:waypoint x=\"216\" y=\"178\" />\n        <di:waypoint x=\"270\" y=\"178\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_2_di\" bpmnElement=\"Flow_2\">\n        <di:waypoint x=\"370\" y=\"178\" />\n        <di:waypoint x=\"430\" y=\"178\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"Flow_3_di\" bpmnElement=\"Flow_3\">\n        <di:waypoint x=\"530\" y=\"178\" />\n        <di:waypoint x=\"590\" y=\"178\" />\n      </bpmndi:BPMNEdge>\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>\n</bpmn:definitions>",
+  "bpmnDefinitions": [
+    {
+      "id": "wf-general",
+      "nombre": "Workflow Estándar de Trámites",
+      "departamento": "Sistemas",
+      "version": "1.0",
+      "activo": true,
+      "descripcion": "Flujo base de revisión y aprobación departamental."
+    }
+  ]
+}

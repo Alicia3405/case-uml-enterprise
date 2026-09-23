@@ -1,0 +1,175 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
+  
+  <div class="w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+    
+    <!-- Encabezado con Branding -->
+    <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 p-5 border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-emerald-400 flex items-center justify-center text-white font-black text-sm shadow-md">
+          CASE
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-white tracking-wide">Acceso al Entorno Colaborativo</h3>
+          <p class="text-[11px] text-slate-400">Modelador UML 2.5 &bull; Enterprise Architect</p>
+        </div>
+      </div>
+      @if (!authService.mustChangePassword()) {
+        <button 
+          (click)="closed.emit()" 
+          class="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      }
+    </div>
+
+    <!-- CUERPO PRINCIPAL -->
+    <div class="p-6 space-y-4">
+
+      <!-- CASO 1: DEBE CAMBIAR CONTRASEÑA EN PRIMER INGRESO (Requisito estricto) -->
+      @if (authService.currentUser() && authService.mustChangePassword()) {
+        <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center space-x-2 text-amber-400 font-bold text-xs">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span>Primer Acceso: Cambio Obligatorio de Contraseña</span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">
+            Hola <strong class="text-white">{{ authService.currentUser()?.nombreCompleto }}</strong>. Tu cuenta fue generada por el Administrador con una contraseña provisional. Por seguridad corporativa, debes cambiarla para continuar.
+          </p>
+        </div>
+
+        <form (ngSubmit)="saveNewPassword()" class="space-y-3 pt-1">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Contraseña Actual (Provisional)</label>
+            <input 
+              type="password" 
+              [(ngModel)]="currentPassword" 
+              name="currPass" 
+              placeholder="Ej: empresa2026"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Nueva Contraseña Privada</label>
+            <input 
+              type="password" 
+              [(ngModel)]="newPassword" 
+              name="newPass" 
+              placeholder="Mínimo 4 caracteres"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Confirmar Nueva Contraseña</label>
+            <input 
+              type="password" 
+              [(ngModel)]="confirmPassword" 
+              name="confPass" 
+              placeholder="Repite la nueva contraseña"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            class="w-full py-2.5 px-4 bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs rounded-lg shadow-lg transition mt-2 flex items-center justify-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>Establecer Nueva Contraseña y Continuar</span>
+          </button>
+        </form>
+      }
+
+      <!-- CASO 2: FORMULARIO NORMAL DE LOGIN -->
+      @else {
+        <form (ngSubmit)="login()" class="space-y-3">
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Usuario / Carnet / Identificador</label>
+            <input 
+              type="text" 
+              [(ngModel)]="username" 
+              name="username" 
+              placeholder="Ej: carlos, laura, admin"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Contraseña</label>
+            <input 
+              type="password" 
+              [(ngModel)]="password" 
+              name="password" 
+              placeholder="••••••••"
+              class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-teal-500 transition"
+              required
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            class="w-full py-2.5 px-4 bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs rounded-lg shadow-lg transition mt-2">
+            Iniciar Sesión
+          </button>
+        </form>
+
+        <!-- Selector Rápido para Pruebas en el Aula (Hasta 3 Dispositivos) -->
+        <div class="pt-3 border-t border-slate-800">
+          <div class="text-[10px] uppercase font-bold text-slate-400 mb-2 flex items-center justify-between">
+            <span>Acceso rápido para demostración:</span>
+            <span class="text-[9px] text-teal-400 font-mono">3 Dispositivos</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            @for (demo of demoUsers; track demo.username) {
+              <button 
+                (click)="quickSwitch(demo)"
+                class="flex items-center space-x-2 p-2 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 rounded-lg text-left transition group">
+                <div 
+                  class="w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] text-white flex-shrink-0"
+                  [style.background-color]="demo.color">
+                  {{ demo.username.substring(0,1).toUpperCase() }}
+                </div>
+                <div class="overflow-hidden">
+                  <div class="text-[11px] font-bold text-white truncate">{{ demo.name }}</div>
+                  <div class="text-[9px] text-slate-400 truncate">{{ demo.role }}</div>
+                </div>
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Mensajes de Estado -->
+      @if (errorMessage()) {
+        <div class="p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-300 text-xs font-semibold flex items-center space-x-2">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{{ errorMessage() }}</span>
+        </div>
+      }
+
+      @if (successMessage()) {
+        <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-300 text-xs font-semibold flex items-center space-x-2">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{{ successMessage() }}</span>
+        </div>
+      }
+
+    </div>
+
+  </div>
+
+</div>

@@ -1,0 +1,95 @@
+/* CASE STUDIO UML 2.5 - WORKSPACE STYLES */
+
+.uml-studio-root {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.w-84 {
+  width: 21rem;
+}
+
+/* Tarjeta UML y nodos polimórficos */
+.uml-card {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.uml-card:hover {
+  border-color: rgba(20, 184, 166, 0.7);
+}
+
+/* Hover suave sobre relaciones */
+.uml-relation-group:hover path:nth-child(2) {
+  stroke: #2dd4bf !important;
+  stroke-width: 2.5 !important;
+}
+
+/* Animaciones suaves */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Scrollbars finos para atributos y paneles */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.locked-by-other {
+  cursor: not-allowed !important;
+}

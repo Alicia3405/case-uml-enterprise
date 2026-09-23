@@ -1,0 +1,227 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
+  <div class="relative w-full max-w-5xl bg-slate-900 border border-indigo-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    
+    <!-- Encabezado del Modal -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/90">
+      <div class="flex items-center space-x-3">
+        <div class="p-2.5 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl shadow-lg shadow-indigo-500/25">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            Auditoría de Normalización & Inteligencia de Base de Datos
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-semibold">1NF • 2NF • 3NF</span>
+          </h2>
+          <p class="text-xs text-slate-400">Evaluación de arquitectura relacional, cohesión de atributos, métodos y conexiones</p>
+        </div>
+      </div>
+
+      <!-- Tarjeta de Puntaje de Salud Restore (Score 0 - 100 PTS) -->
+      @if (auditReport(); as rep) {
+        <div class="flex items-center space-x-4">
+          <div class="px-4 py-1.5 rounded-xl border bg-slate-900 flex items-center space-x-2"
+               [ngClass]="{
+                 'border-emerald-500/40 text-emerald-400': rep.score >= 80,
+                 'border-amber-500/40 text-amber-400': rep.score >= 50 && rep.score < 80,
+                 'border-rose-500/40 text-rose-400': rep.score < 50
+               }">
+            <span class="text-xs font-semibold text-slate-400 uppercase">Salud del Modelo:</span>
+            <span class="text-lg font-extrabold">{{ rep.score }}%</span>
+          </div>
+
+          <button (click)="cerrar()" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- CUERPO PRINCIPAL DEL MODAL -->
+    <div class="p-6 overflow-y-auto space-y-6 flex-1 bg-slate-900">
+
+      @if (auditReport(); as report) {
+
+        <!-- SECCIÓN 1: VISTA PREVIA DE LA PROPUESTA -->
+        <div class="p-5 rounded-2xl bg-slate-950 border border-indigo-500/40 shadow-xl space-y-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-extrabold px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                VISTA PREVIA
+              </span>
+              <span class="text-xs text-slate-400">
+                Estructura: <b class="text-emerald-400">{{ proposedStats().totalClasses }} tablas</b> • <b class="text-sky-400">{{ proposedStats().totalRelations }} conexiones</b>
+              </span>
+            </div>
+            <div class="flex items-center space-x-3 text-xs">
+              <span class="text-emerald-400 font-bold">+{{ proposedStats().newClasses }} Nuevas Tablas</span>
+              <span class="text-indigo-400 font-bold">+{{ proposedStats().newAttrs }} Atributos</span>
+              <span class="text-sky-400 font-bold">+{{ proposedStats().newRelations }} Conexiones</span>
+            </div>
+          </div>
+
+          <!-- BANNER 1: CUANDO EL MODELO ESTÁ REALMENTE AL 100% (SIN NINGUNA RECOMENDACIÓN) -->
+          @if (report.recommendations.length === 0) {
+            <div class="p-4 bg-emerald-950/30 border border-emerald-500/40 rounded-xl flex items-center space-x-3 text-emerald-300">
+              <svg class="w-7 h-7 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h4 class="text-sm font-bold text-white">🎉 ¡Modelo 100% Normalizado y Arquitectónicamente Perfecto!</h4>
+                <p class="text-xs text-emerald-300/90 mt-0.5">El diagrama cumple al 100% con las reglas relacionales (1NF, 2NF, 3NF), cohesión de atributos, métodos y conexiones entre entidades.</p>
+              </div>
+            </div>
+          } @else if (checkedRecIds().size > 0) {
+            <!-- BANNER 2: PROPUESTA ACTIVA CON CASILLEROS SELECCIONADOS -->
+            <div class="p-3.5 bg-indigo-950/40 border border-indigo-500/40 rounded-xl flex items-center space-x-3 text-indigo-200">
+              <svg class="w-5 h-5 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <p class="text-xs">
+                <b>Propuesta Activa:</b> Se aplicarán <b>+{{ proposedStats().newClasses }} tablas</b>, <b>+{{ proposedStats().newAttrs }} atributos</b> y <b>+{{ proposedStats().newRelations }} conexiones</b> al confirmar.
+              </p>
+            </div>
+          } @else {
+            <!-- BANNER 3: SUGERENCIAS PENDIENTES (NINGÚN CASILLERO MARCADO) -->
+            <div class="p-3.5 bg-amber-950/30 border border-amber-500/40 rounded-xl flex items-center space-x-3 text-amber-200">
+              <svg class="w-5 h-5 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <p class="text-xs">
+                Existen <b>{{ report.recommendations.length }} sugerencias</b> de optimización relacional pendientes. Marca los casilleros abajo para incluirlas en el rediseño.
+              </p>
+            </div>
+          }
+
+          <!-- VISTA PREVIA DE TABLAS, ATRIBUTOS Y MÉTODOS -->
+          <div class="p-4 bg-slate-900/90 rounded-xl border border-slate-800 min-h-[170px] max-h-[230px] overflow-x-auto overflow-y-auto flex items-start gap-4 shadow-inner">
+            @for (cls of proposedDiagram().classes; track cls.id) {
+              <div class="min-w-[210px] max-w-[240px] p-3.5 rounded-xl bg-slate-950 border border-slate-700/80 shadow-md space-y-2 flex-shrink-0 transition-all hover:border-indigo-500/60">
+                <div class="border-b border-slate-800 pb-1.5 flex items-center justify-between">
+                  <div>
+                    <span class="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">{{ cls.stereotype || 'entity' }}</span>
+                    <h4 class="text-xs font-bold text-indigo-300 truncate">{{ cls.name }}</h4>
+                  </div>
+                  <span class="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                    {{ cls.attributes.length }} attr • {{ cls.methods ? cls.methods.length : 0 }} méts
+                  </span>
+                </div>
+
+                <!-- Atributos -->
+                <div class="space-y-1 text-[10px] max-h-20 overflow-y-auto font-mono">
+                  @for (attr of cls.attributes; track attr.id) {
+                    <div class="flex items-center justify-between text-slate-300">
+                      <span [class.text-amber-300]="attr.isPrimaryKey" [class.font-bold]="attr.isPrimaryKey">
+                        {{ attr.isPrimaryKey ? '🔑 ' : '- ' }}{{ attr.name }}
+                      </span>
+                      <span class="text-slate-500 text-[9px]">{{ attr.type }}</span>
+                    </div>
+                  }
+                </div>
+
+                <!-- Métodos u Operaciones -->
+                @if (cls.methods && cls.methods.length > 0) {
+                  <div class="border-t border-slate-800/80 pt-1 space-y-0.5 text-[9px] font-mono text-purple-300">
+                    @for (m of cls.methods; track m.id) {
+                      <div class="truncate">+ {{ m.name }}(): {{ m.returnType || 'void' }}</div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2: LISTA DE CASILLEROS (CHECKBOXES) PARA RECOMENDACIONES -->
+        @if (report.recommendations.length > 0) {
+          <div class="space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                📋 Casilleros de Optimización, Métodos y Conexiones de Dominio
+                <span class="text-xs text-slate-400 font-normal">(Marca o desmarca para ajustar la propuesta)</span>
+              </h3>
+              <div class="flex items-center space-x-2 text-xs">
+                <button (click)="marcarTodas()" class="text-indigo-400 hover:text-indigo-300 underline font-medium">
+                  Marcar Todas
+                </button>
+                <span class="text-slate-600">|</span>
+                <button (click)="desmarcarTodas()" class="text-slate-400 hover:text-slate-300 underline font-medium">
+                  Desmarcar Todas
+                </button>
+              </div>
+            </div>
+
+            <div class="space-y-2.5">
+              @for (rec of report.recommendations; track rec.id) {
+                <label (click)="$event.preventDefault(); toggleCheck(rec.id)"
+                       class="p-4 rounded-xl border transition-all cursor-pointer flex items-start gap-4 select-none"
+                       [ngClass]="{
+                         'border-indigo-500/50 bg-indigo-950/20 shadow-md': checkedRecIds().has(rec.id),
+                         'border-slate-800 bg-slate-950/40 opacity-70 hover:opacity-100': !checkedRecIds().has(rec.id)
+                       }">
+                  <!-- Casillero Checkbox -->
+                  <div class="mt-0.5">
+                    <input type="checkbox"
+                           [checked]="checkedRecIds().has(rec.id)"
+                           (change)="toggleCheck(rec.id)"
+                           class="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-900 cursor-pointer" />
+                  </div>
+
+                  <!-- Detalle de la Recomendación -->
+                  <div class="flex-1 space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[9px] font-bold px-2 py-0.5 rounded uppercase"
+                            [ngClass]="{
+                              'bg-rose-500/20 text-rose-300 border border-rose-500/30': rec.severity === 'CRITICAL',
+                              'bg-amber-500/20 text-amber-300 border border-amber-500/30': rec.severity === 'WARNING',
+                              'bg-sky-500/20 text-sky-300 border border-sky-500/30': rec.severity === 'INFO'
+                            }">{{ rec.severity }}</span>
+                      <span class="text-xs font-bold text-indigo-300">[{{ rec.category }}]</span>
+                      <h4 class="text-xs font-bold text-white">{{ rec.title }}</h4>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">{{ rec.description }}</p>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+        }
+
+      }
+
+    </div>
+
+    <!-- SECCIÓN 3: PIE DEL MODAL CON BOTÓN DE APROBACIÓN CONTROLADO -->
+    <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between text-xs text-slate-400">
+      <span>Normalización OMT / DMO James Rumbaugh • 1NF, 2NF, 3NF</span>
+      <div class="flex items-center space-x-3">
+        <button (click)="cerrar()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition font-semibold">
+          Cerrar
+        </button>
+
+        @if (proposedStats().newClasses > 0 || proposedStats().newAttrs > 0 || proposedStats().newRelations > 0) {
+          <button (click)="confirmarYAplicarAlLienzo()"
+                  class="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/30 transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Aprobar y Rediseñar Lienzo (+{{ proposedStats().newClasses }} tablas, +{{ proposedStats().newAttrs }} attrs, +{{ proposedStats().newRelations }} conxs)
+          </button>
+        } @else {
+          <button disabled
+                  class="px-6 py-2.5 bg-slate-800 text-slate-500 font-bold text-xs rounded-xl border border-slate-700/60 cursor-not-allowed flex items-center gap-2">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Modelo Optimizado al 100% (No se requieren cambios)
+          </button>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>
