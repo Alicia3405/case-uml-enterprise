@@ -13,7 +13,6 @@ class ProjectStorageService {
 
   static const String _projectsKey = 'case_enterprise_projects';
   static const String _legacyProjectsKey = 'case_mobile_projects';
-  static const String _activeDiagramKey = 'case_mobile_active_diagram_';
 
   /// Obtiene la lista de proyectos guardados y sincroniza con el backend
   Future<List<ProjectSummary>> getProjects() async {
