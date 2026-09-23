@@ -628,7 +628,7 @@
           <mat-icon fontSet="material-symbols-rounded">format_list_numbered</mat-icon>
         </button>
         <button class="toolbar-btn" [class.is-active]="editor.isActive('blockquote')"
-          (click)="editor.chain().focus().toggleBlockquote().run()" title="Cita">
+          (click)="$any(editor.chain().focus()).toggleBlockquote ? $any(editor.chain().focus()).toggleBlockquote().run() : null" title="Cita">
           <mat-icon fontSet="material-symbols-rounded">format_quote</mat-icon>
         </button>
         <button class="toolbar-btn" (click)="editor.chain().focus().setHorizontalRule().run()" title="Línea divisora">

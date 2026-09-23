@@ -1,5 +1,5 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import * as firebaseApp from 'firebase/app';
+const initializeApp = firebaseApp.initializeApp;
 
 // Your web app's Firebase configuration
 export const firebaseConfig = {

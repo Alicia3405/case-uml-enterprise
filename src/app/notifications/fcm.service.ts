@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { initializeApp } from 'firebase/app';
+import * as firebaseApp from 'firebase/app';
+const initializeApp = firebaseApp.initializeApp;
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 import { firstValueFrom } from 'rxjs';
 import { BASE_PATH } from '../api/variables';
