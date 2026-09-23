@@ -90,10 +90,10 @@ class ProjectMember {
   };
 
   factory ProjectMember.fromJson(Map<String, dynamic> json) => ProjectMember(
-    userId: json['userId'] ?? '',
+    userId: json['userId'] ?? json['id'] ?? '',
     username: json['username'] ?? '',
-    nombreCompleto: json['nombreCompleto'] ?? '',
-    role: json['role'] ?? 'EDITOR',
+    nombreCompleto: json['nombreCompleto'] ?? json['name'] ?? '',
+    role: json['role'] ?? json['permission'] ?? 'EDITOR',
     status: json['status'] ?? 'ACEPTADA',
     color: json['color'] ?? '#38BDF8',
     canDownloadBackend: json['canDownloadBackend'] ?? true,

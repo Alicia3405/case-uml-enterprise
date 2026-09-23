@@ -4,6 +4,7 @@ import '../providers/project_provider.dart';
 import '../services/stt_service.dart';
 import '../services/tts_service.dart';
 
+/// Modal Dock exclusivo para Comandos de Voz UML en el Lienzo (1 toque)
 class VoiceDockSheet extends StatefulWidget {
   const VoiceDockSheet({Key? key}) : super(key: key);
 
@@ -11,53 +12,67 @@ class VoiceDockSheet extends StatefulWidget {
   State<VoiceDockSheet> createState() => _VoiceDockSheetState();
 }
 
-class _VoiceDockSheetState extends State<VoiceDockSheet> {
+class _VoiceDockSheetState extends State<VoiceDockSheet> with SingleTickerProviderStateMixin {
   final _textCtrl = TextEditingController();
   final _stt = SttService();
-  bool _isAiMode = true; // true = Canal 1 (Arquitectura IA), false = Canal 2 (Comando atómico)
   bool _isListening = false;
-
-  final List<String> _aiPresets = [
-    'Crear sistema para clínica veterinaria con cliente, mascota y veterinario',
-    'Crear sistema para hotelería con hotel, habitación, huésped y reserva',
-    'Crear sistema para ventas con cliente, factura y producto',
-  ];
+  late AnimationController _animCtrl;
 
   final List<String> _cmdPresets = [
     'Crear clase Factura',
-    'Agregar atributo telefono tipo String en la tabla Cliente',
-    'Agregar método calcularTotal tipo Double a Factura',
-    'Conectar Hotel con Habitacion',
-    'Eliminar método procesar de Habitacion',
+    'Agregar atributo telefono tipo String a Cliente',
+    'Agregar metodo calcularTotal tipo Double a Factura',
+    'Conectar Cliente con Factura',
+    'Eliminar metodo procesar de Habitacion',
+    'Eliminar clase Factura',
     'Limpiar lienzo',
     'Deshacer',
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
+    // Iniciar escucha inmediatamente al abrir para fluidez máxima
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startListening();
+    });
+  }
+
+  @override
   void dispose() {
+    _animCtrl.dispose();
     _textCtrl.dispose();
+    _stt.stop();
     super.dispose();
   }
 
-  void _toggleListening() async {
-    // Interrumpir inmediatamente cualquier respuesta hablada previa
+  void _startListening() async {
     await TtsService().stop();
+    setState(() => _isListening = true);
+    await _stt.listen(
+      onResult: (text) {
+        if (mounted) {
+          setState(() {
+            _textCtrl.text = text;
+          });
+        }
+      },
+      onDone: () {
+        if (mounted) {
+          setState(() => _isListening = false);
+        }
+      },
+    );
+  }
 
+  void _toggleListening() async {
+    await TtsService().stop();
     if (_isListening) {
       await _stt.stop();
       setState(() => _isListening = false);
     } else {
-      setState(() => _isListening = true);
-      await _stt.listen(
-        onResult: (text) {
-          setState(() {
-            _textCtrl.text = text;
-          });
-        },
-        onDone: () {
-          setState(() => _isListening = false);
-        },
-      );
+      _startListening();
     }
   }
 
@@ -65,12 +80,7 @@ class _VoiceDockSheetState extends State<VoiceDockSheet> {
     final text = _textCtrl.text.trim();
     if (text.isEmpty) return;
 
-    if (_isAiMode) {
-      provider.executeAiArchitecturePrompt(text);
-    } else {
-      provider.executeAtomicVoiceCommand(text);
-    }
-
+    provider.executeAtomicVoiceCommand(text);
     _textCtrl.clear();
     Navigator.pop(context);
   }
@@ -83,7 +93,7 @@ class _VoiceDockSheetState extends State<VoiceDockSheet> {
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 20,
+        top: 16,
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       decoration: const BoxDecoration(
@@ -107,67 +117,49 @@ class _VoiceDockSheetState extends State<VoiceDockSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Selector de Canales de Voz
+            // Título y Estado de Micrófono
             Row(
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _isAiMode = true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 9),
+                const Icon(Icons.mic, color: Color(0xFF2DD4BF), size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  'Comando de Voz UML',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const Spacer(),
+                if (_isListening)
+                  AnimatedBuilder(
+                    animation: _animCtrl,
+                    builder: (context, child) => Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: _isAiMode ? const Color(0xFF7C3AED) : const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _isAiMode ? const Color(0xFFA78BFA) : Colors.transparent,
-                        ),
+                        color: const Color(0xFFE11D48).withOpacity(0.2 + _animCtrl.value * 0.3),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE11D48)),
                       ),
-                      child: const Center(
-                        child: Text(
-                          '✨ Canal 1: Arquitectura IA',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.fiber_manual_record, color: Color(0xFFE11D48), size: 10),
+                          SizedBox(width: 4),
+                          Text(
+                            'GRABANDO',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFFDA4AF)),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _isAiMode = false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      decoration: BoxDecoration(
-                        color: !_isAiMode ? const Color(0xFF0D9488) : const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: !_isAiMode ? const Color(0xFF2DD4BF) : Colors.transparent,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          '🎙️ Canal 2: Comando UML',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 14),
 
-            // Campo de entrada y botón de dictado
+            // Campo de entrada y botón de micrófono
             Row(
               children: [
                 Expanded(
@@ -175,9 +167,7 @@ class _VoiceDockSheetState extends State<VoiceDockSheet> {
                     controller: _textCtrl,
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: _isAiMode
-                          ? 'Describe el sistema (ej. Veterinaria con Mascotas)...'
-                          : 'Ej: Crear clase Paciente, o Conectar Hotel con Habitacion...',
+                      hintText: 'Ej: Crear clase Factura, Agregar atributo total...',
                       hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
                       filled: true,
                       fillColor: const Color(0xFF1E293B),
@@ -187,9 +177,7 @@ class _VoiceDockSheetState extends State<VoiceDockSheet> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide(
-                          color: _isAiMode ? const Color(0xFFA855F7) : const Color(0xFF14B8A6),
-                        ),
+                        borderSide: const BorderSide(color: Color(0xFF2DD4BF)),
                       ),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
@@ -199,25 +187,26 @@ class _VoiceDockSheetState extends State<VoiceDockSheet> {
                 IconButton.filled(
                   onPressed: _toggleListening,
                   style: IconButton.styleFrom(
-                    backgroundColor: _isListening ? const Color(0xFFE11D48) : const Color(0xFF334155),
+                    backgroundColor: _isListening ? const Color(0xFFE11D48) : const Color(0xFF0D9488),
                     padding: const EdgeInsets.all(12),
                   ),
-                  icon: Icon(_isListening ? Icons.mic : Icons.mic_none, color: Colors.white),
+                  icon: Icon(_isListening ? Icons.stop : Icons.mic, color: Colors.white),
+                  tooltip: _isListening ? 'Detener grabación' : 'Grabar por voz',
                 ),
               ],
             ),
             const SizedBox(height: 14),
 
             // Píldoras de sugerencias rápidas
-            Text(
-              _isAiMode ? '⚡ Sistemas rápidos (1 toque):' : '⚡ Comandos frecuentes (1 toque):',
-              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w600),
+            const Text(
+              '⚡ Comandos frecuentes (1 toque):',
+              style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: (_isAiMode ? _aiPresets : _cmdPresets).map((p) {
+              children: _cmdPresets.map((p) {
                 return ActionChip(
                   label: Text(p, style: const TextStyle(fontSize: 10, color: Color(0xFFE2E8F0))),
                   backgroundColor: const Color(0xFF1E293B),
@@ -229,19 +218,20 @@ class _VoiceDockSheetState extends State<VoiceDockSheet> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
 
             // Botón Ejecutar
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: () => _execute(provider),
+              icon: const Icon(Icons.bolt, size: 18, color: Colors.white),
+              label: const Text(
+                '🚀 Aplicar Comando en el Lienzo',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _isAiMode ? const Color(0xFF7C3AED) : const Color(0xFF0D9488),
+                backgroundColor: const Color(0xFF0D9488),
                 padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              child: Text(
-                _isAiMode ? '✨ Sintetizar Arquitectura Completa' : '🚀 Ejecutar Comando en el Lienzo',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
               ),
             ),
           ],

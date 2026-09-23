@@ -81,9 +81,22 @@ class ProjectProvider extends ChangeNotifier {
     notifyListeners();
     _projects = await _storage.getProjects();
     final curUser = AuthService().currentUser;
-    final currentUserId = curUser?.id ?? 'usr_pedro_01';
+    final currentUserId = (curUser?.id ?? 'usr_laura').toLowerCase().trim();
+    final currentUsername = (curUser?.username ?? 'laura').toLowerCase().trim();
+    final usrPrefixed = 'usr_$currentUsername';
+
     await _loadVoiceDialogueForUser(currentUserId);
-    final userProjects = _projects.where((p) => p.ownerId == currentUserId).toList();
+    final userProjects = _projects.where((p) {
+      final owner = p.ownerId.toLowerCase().trim();
+      final isOwner = owner == currentUserId || owner == currentUsername || owner == usrPrefixed || 'usr_$owner' == currentUserId;
+      final isMember = p.members.any((m) {
+        final mId = m.userId.toLowerCase().trim();
+        final mUsername = m.username.toLowerCase().trim();
+        return mId == currentUserId || mId == currentUsername || mUsername == currentUsername || mUsername == currentUserId;
+      });
+      return isOwner || isMember;
+    }).toList();
+
     if (userProjects.isNotEmpty) {
       await openProject(userProjects.first.id, readOnly: false);
     } else if (_projects.isNotEmpty && _activeProject == null) {

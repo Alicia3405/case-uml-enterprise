@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (auth.currentUser != null && mounted) {
-      context.read<ProjectProvider>().switchUserProjects(auth.currentUser!.id);
+      await context.read<ProjectProvider>().loadProjects();
     }
 
     if (mounted) {

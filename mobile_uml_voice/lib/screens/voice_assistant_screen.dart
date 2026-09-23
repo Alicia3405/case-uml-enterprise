@@ -2,18 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/project_provider.dart';
 import '../services/stt_service.dart';
+import '../services/tts_service.dart';
 import '../widgets/voice_orb_widget.dart';
 
-import '../services/tts_service.dart';
-
+/// Pantalla Exclusiva: Generador Inteligente de Sistemas UML por IA y Voz
 class VoiceAssistantScreen extends StatefulWidget {
   final VoidCallback onNavigateToCanvas;
-  final int initialVoiceChannel;
 
   const VoiceAssistantScreen({
     Key? key,
     required this.onNavigateToCanvas,
-    this.initialVoiceChannel = 0,
   }) : super(key: key);
 
   @override
@@ -23,23 +21,23 @@ class VoiceAssistantScreen extends StatefulWidget {
 class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
   final _stt = SttService();
   final _tts = TtsService();
+  final _textCtrl = TextEditingController();
   bool _isListening = false;
   bool _hasProcessedCurrent = false;
   String _currentSpokenText = '';
-  late int _voiceChannel; // 0 = Canal 1 (Arquitectura IA), 1 = Canal 2 (Comandos UML)
+
+  final List<String> _examplePrompts = [
+    'Crear sistema para veterinaria con clase Doctor con atributos id, nombre, fecha, clase Animal con id, nombre, nombreDueño',
+    'Crear sistema para hotelería con hotel, habitación, huésped y reserva',
+    'Crear sistema de ventas con cliente, factura, detalle y producto',
+    'Crear sistema para biblioteca con libro, autor, lector y préstamo',
+  ];
 
   @override
-  void initState() {
-    super.initState();
-    _voiceChannel = widget.initialVoiceChannel;
-  }
-
-  @override
-  void didUpdateWidget(VoiceAssistantScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.initialVoiceChannel != oldWidget.initialVoiceChannel) {
-      _voiceChannel = widget.initialVoiceChannel;
-    }
+  void dispose() {
+    _textCtrl.dispose();
+    _stt.stop();
+    super.dispose();
   }
 
   void _handleOrbTap(ProjectProvider provider) async {
@@ -48,10 +46,9 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
       setState(() => _isListening = false);
       if (_currentSpokenText.isNotEmpty && !_hasProcessedCurrent) {
         _hasProcessedCurrent = true;
-        _processCommand(provider, _currentSpokenText);
+        _processAiPrompt(provider, _currentSpokenText);
       }
     } else {
-      // Interrumpir inmediatamente cualquier respuesta hablada previa
       await _tts.stop();
 
       setState(() {
@@ -62,30 +59,35 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
 
       await _stt.listen(
         onResult: (text) {
-          setState(() {
-            _currentSpokenText = text;
-          });
+          if (mounted) {
+            setState(() {
+              _currentSpokenText = text;
+              _textCtrl.text = text;
+            });
+          }
         },
         onDone: () {
-          setState(() => _isListening = false);
-          if (_currentSpokenText.isNotEmpty && !_hasProcessedCurrent) {
-            _hasProcessedCurrent = true;
-            _processCommand(provider, _currentSpokenText);
+          if (mounted) {
+            setState(() => _isListening = false);
+            if (_currentSpokenText.isNotEmpty && !_hasProcessedCurrent) {
+              _hasProcessedCurrent = true;
+              _processAiPrompt(provider, _currentSpokenText);
+            }
           }
         },
       );
     }
   }
 
-  void _processCommand(ProjectProvider provider, String text) async {
-    if (_voiceChannel == 0) {
-      await provider.executeAiArchitecturePrompt(text);
-      if (mounted) {
-        // Navega automáticamente al Lienzo UML para visualizar el sistema generado
-        widget.onNavigateToCanvas?.call();
-      }
-    } else {
-      await provider.executeAtomicVoiceCommand(text);
+  void _processAiPrompt(ProjectProvider provider, String text) async {
+    final clean = text.trim();
+    if (clean.isEmpty) return;
+
+    await provider.executeAiArchitecturePrompt(clean);
+    if (mounted) {
+      _textCtrl.clear();
+      // Navega automáticamente al Lienzo UML para visualizar el sistema generado
+      widget.onNavigateToCanvas();
     }
   }
 
@@ -103,11 +105,11 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '🎙️ Asistente de Voz Inteligente',
+              '✨ Generador de Sistemas IA',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             Text(
-              activeProject?.name ?? 'Sin proyecto activo',
+              activeProject?.name ?? 'Diseño de Arquitectura UML',
               style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -124,189 +126,184 @@ class _VoiceAssistantScreenState extends State<VoiceAssistantScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ORBE CENTRAL REACTIVO DE VOZ
+              const SizedBox(height: 12),
+              Center(
+                child: VoiceOrbWidget(
+                  isListening: _isListening,
+                  onTap: () => _handleOrbTap(provider),
+                ),
+              ),
+              const SizedBox(height: 14),
 
-            // Selector de Canales de Voz
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(4),
+              // Estado de Escucha y Transcripción
+              Center(
+                child: Text(
+                  _isListening
+                      ? '🎙️ Escuchando... Dicta tu sistema y toca el orbe al terminar'
+                      : 'Toca el orbe para dictar tu arquitectura a la IA',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _isListening ? const Color(0xFFFDA4AF) : const Color(0xFF94A3B8),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Cuadro de Entrada de Texto
+              Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: const Color(0xFF334155)),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _voiceChannel = 0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: _voiceChannel == 0 ? const Color(0xFF7C3AED) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              '✨ Canal 1: Generador IA',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ),
+                    const Row(
+                      children: [
+                        Icon(Icons.edit_note, color: Color(0xFFA855F7), size: 18),
+                        SizedBox(width: 6),
+                        Text(
+                          'O escribe la descripción del sistema:',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _textCtrl,
+                      maxLines: 2,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Ej. Crear sistema veterinaria con clase Doctor con id, nombre, clase Animal con id, nombre...',
+                        hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                        filled: true,
+                        fillColor: const Color(0xFF0F172A),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       ),
                     ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _voiceChannel = 1),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: _voiceChannel == 1 ? const Color(0xFF0D9488) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              '🗣️ Canal 2: Comandos UML',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ),
-                        ),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      onPressed: () => _processAiPrompt(provider, _textCtrl.text),
+                      icon: const Icon(Icons.auto_awesome, size: 16, color: Colors.white),
+                      label: const Text(
+                        '✨ Sintetizar Sistema en el Lienzo',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C3AED),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 16),
 
-            const Spacer(),
-
-            // ORBE CENTRAL REACTIVO
-            VoiceOrbWidget(
-              isListening: _isListening,
-              onTap: () => _handleOrbTap(provider),
-            ),
-            const SizedBox(height: 20),
-
-            // Estado de Escucha y Transcripción
-            Text(
-              _isListening
-                  ? 'Escuchando tu voz... Toca el orbe al terminar'
-                  : 'Toca el orbe para hablar',
-              style: TextStyle(
-                color: _isListening ? const Color(0xFFFDA4AF) : const Color(0xFF94A3B8),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+              // Guía rápida de qué decir / Ejemplos
+              const Text(
+                '💡 Guía de Ejemplos (Toca para probar):',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8)),
               ),
-            ),
-            const SizedBox(height: 8),
-
-            if (_currentSpokenText.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF475569)),
-                  ),
-                  child: Text(
-                    '"$_currentSpokenText"',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFFF1F5F9), fontStyle: FontStyle.italic),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-
-            const Spacer(),
-
-            // Diálogo de Voz Reciente
-            Container(
-              height: 210,
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0F172A),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(top: BorderSide(color: Color(0xFF1E293B))),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        '📜 Registro de Respuestas de Voz',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+              const SizedBox(height: 8),
+              ..._examplePrompts.map((p) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: InkWell(
+                    onTap: () {
+                      _textCtrl.text = p;
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B).withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF334155)),
                       ),
-                      if (provider.voiceDialogue.isNotEmpty)
-                        GestureDetector(
-                          onTap: provider.clearDialogue,
-                          child: const Text('Limpiar', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                        ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.touch_app, size: 14, color: Color(0xFF38BDF8)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              p,
+                              style: const TextStyle(fontSize: 11, color: Color(0xFFE2E8F0)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              const SizedBox(height: 16),
+
+              // Historial de respuestas de IA recientes
+              if (provider.voiceDialogue.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF1E293B)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            '📜 Registro de Sistemas Generados',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          GestureDetector(
+                            onTap: provider.clearDialogue,
+                            child: const Text('Limpiar', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ...provider.voiceDialogue.take(3).map((item) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('🗣️ "${item['user']}"', style: const TextStyle(fontSize: 11, color: Color(0xFFE2E8F0))),
+                              const SizedBox(height: 2),
+                              Text('🤖 ${item['response']}', style: const TextStyle(fontSize: 10, color: Color(0xFF38BDF8))),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: provider.voiceDialogue.isEmpty
-                        ? Center(
-                            child: Text(
-                              _voiceChannel == 0
-                                  ? 'Di algo como: "Crear sistema para hotelería con habitaciones y huéspedes"'
-                                  : 'Di algo como: "Crear clase Cliente", "Agregar atributo teléfono a Cliente"',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF475569)),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
-                        : ListView.builder(
-                            itemCount: provider.voiceDialogue.length,
-                            itemBuilder: (context, index) {
-                              final item = provider.voiceDialogue[index];
-                              final isAi = item['type'] == 'ai';
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1E293B),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: isAi ? const Color(0xFF7C3AED).withOpacity(0.4) : const Color(0xFF0D9488).withOpacity(0.4),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          isAi ? '✨ Arquitectura IA' : '🎙️ Comando UML',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: isAi ? const Color(0xFFA78BFA) : const Color(0xFF2DD4BF),
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        Text(item['time'] ?? '', style: const TextStyle(fontSize: 9, color: Color(0xFF64748B))),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text('🗣️ "${item['user']}"', style: const TextStyle(fontSize: 11, color: Color(0xFFE2E8F0))),
-                                    const SizedBox(height: 3),
-                                    Text('🤖 ${item['response']}', style: const TextStyle(fontSize: 11, color: Color(0xFF38BDF8), fontWeight: FontWeight.w500)),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+                ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

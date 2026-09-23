@@ -117,7 +117,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onOpenVoiceAssistant: () => _navigateToTab(1),
       ),
       VoiceAssistantScreen(
-        initialVoiceChannel: _voiceChannel,
         onNavigateToCanvas: () => _navigateToTab(2),
       ),
       CanvasScreen(

@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_models.dart';
 import '../models/uml_models.dart';
+import 'api_sync_helper.dart';
 
-/// Servicio de Persistencia Local e Interoperabilidad JSON
+/// Servicio de Persistencia Local y Sincronización REST con Backend
 class ProjectStorageService {
   static final ProjectStorageService _instance = ProjectStorageService._internal();
   factory ProjectStorageService() => _instance;
@@ -12,100 +14,152 @@ class ProjectStorageService {
   static const String _projectsKey = 'case_mobile_projects';
   static const String _activeDiagramKey = 'case_mobile_active_diagram_';
 
-  /// Obtiene la lista de proyectos guardados
+  /// Obtiene la lista de proyectos guardados y sincroniza con el backend
   Future<List<ProjectSummary>> getProjects() async {
     final prefs = await SharedPreferences.getInstance();
+    List<ProjectSummary> localProjects = [];
+
     final raw = prefs.getString(_projectsKey);
-    if (raw == null || raw.isEmpty) {
-      // Proyectos iniciales de demostración
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final List<dynamic> list = jsonDecode(raw);
+        localProjects = list.map((item) => ProjectSummary.fromJson(item as Map<String, dynamic>)).toList();
+      } catch (e) {
+        debugPrint('Error leyendo proyectos locales: $e');
+      }
+    }
+
+    // Sincronizar con backend REST
+    try {
+      final backendResp = await ApiSyncHelper.httpGet('/api/v1/proyectos');
+      if (backendResp != null && backendResp.isNotEmpty) {
+        final decoded = jsonDecode(backendResp);
+        final dynamic rawList = (decoded is Map && decoded['datos'] != null)
+            ? decoded['datos']
+            : (decoded is List ? decoded : null);
+
+        if (rawList != null && rawList is List) {
+          final List<ProjectSummary> backendProjects = rawList
+              .map((item) => ProjectSummary.fromJson(item as Map<String, dynamic>))
+              .toList();
+
+          final mergedMap = <String, ProjectSummary>{};
+          for (final bp in backendProjects) {
+            if (bp.id.isNotEmpty) mergedMap[bp.id] = bp;
+          }
+          for (final lp in localProjects) {
+            if (!mergedMap.containsKey(lp.id) && lp.id.isNotEmpty) {
+              mergedMap[lp.id] = lp;
+            }
+          }
+
+          final mergedList = mergedMap.values.toList();
+          await prefs.setString(_projectsKey, jsonEncode(mergedList.map((p) => p.toJson()).toList()));
+          return mergedList;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error sincronizando con backend: $e');
+    }
+
+    if (localProjects.isEmpty) {
+      // Proyectos iniciales por defecto en caso de no haber conexión ni cache previo
       final initial = [
         ProjectSummary(
-          id: 'proj_vet_demo',
-          name: 'Clínica Veterinaria (Caso Oficial)',
-          description: 'Modelo conceptual del examen con Cliente, Mascota, Veterinario y Citas.',
-          ownerId: 'usr_pedro_01',
+          id: 'proj_salud_2026',
+          name: 'Sistema de Gestión de Salud Hospitalaria',
+          description: 'Modelo conceptual de datos UML 2.5 para consultas, médicos y pacientes.',
+          ownerId: 'usr_carlos',
+          ownerName: 'Ing. Carlos Mendoza',
+          classCount: 4,
+          relationCount: 3,
+          isCollaborative: true,
+          members: [
+            ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
+            ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
+            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
+          ],
+        ),
+        ProjectSummary(
+          id: 'proj_ecommerce_2026',
+          name: 'Plataforma de Facturación y Pedidos',
+          description: 'Diagrama de clases para el módulo de pagos y comprobantes fiscales.',
+          ownerId: 'usr_carlos',
+          ownerName: 'Ing. Carlos Mendoza',
+          classCount: 5,
+          relationCount: 4,
+          isCollaborative: true,
+          members: [
+            ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'VIEWER', canDownloadBackend: false),
+            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
+          ],
+        ),
+        ProjectSummary(
+          id: 'proj_laboratorio_2026',
+          name: 'Gestión de Laboratorio Clínico y Muestras',
+          description: 'Modelo de entidades UML para análisis de sangre, reactivos y resultados.',
+          ownerId: 'usr_laura',
+          ownerName: 'Dra. Laura Paredes',
+          classCount: 3,
+          relationCount: 2,
+          isCollaborative: true,
+          members: [
+            ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
+            ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
+            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
+          ],
+        ),
+        ProjectSummary(
+          id: 'proj_farmacia_2026',
+          name: 'Inventario y Dispensación Farmacéutica',
+          description: 'Control de stocks de medicamentos, lotes y prescripciones médicas.',
+          ownerId: 'usr_pedro',
           ownerName: 'Ing. Pedro Quispe',
           classCount: 4,
           relationCount: 3,
           isCollaborative: true,
           members: [
-            ProjectMember(
-              userId: 'usr_pedro_01',
-              username: 'pedro.quispe',
-              nombreCompleto: 'Ing. Pedro Quispe',
-              role: 'OWNER',
-              status: 'ACEPTADA',
-              color: '#38BDF8',
-              canDownloadBackend: true,
-            ),
-            ProjectMember(
-              userId: 'usr_maria_02',
-              username: 'maria.lopez',
-              nombreCompleto: 'Ing. María López',
-              role: 'EDITOR',
-              status: 'ACEPTADA',
-              color: '#EC4899',
-              canDownloadBackend: true,
-            ),
-            ProjectMember(
-              userId: 'usr_carlos_03',
-              username: 'carlos.gomez',
-              nombreCompleto: 'Ing. Carlos Gómez',
-              role: 'VIEWER',
-              status: 'PENDIENTE',
-              color: '#10B981',
-              canDownloadBackend: false,
-            ),
-          ],
-        ),
-        ProjectSummary(
-          id: 'proj_hotel_demo',
-          name: 'Sistema de Hotelería',
-          description: 'Gestión hotelera con Hotel, Habitaciones, Huéspedes y Reservas.',
-          ownerId: 'usr_maria_02',
-          ownerName: 'Ing. María López',
-          classCount: 5,
-          relationCount: 4,
-          isCollaborative: true,
-          members: [
-            ProjectMember(
-              userId: 'usr_maria_02',
-              username: 'maria.lopez',
-              nombreCompleto: 'Ing. María López',
-              role: 'OWNER',
-              status: 'ACEPTADA',
-              color: '#EC4899',
-              canDownloadBackend: true,
-            ),
-            ProjectMember(
-              userId: 'usr_pedro_01',
-              username: 'pedro.quispe',
-              nombreCompleto: 'Ing. Pedro Quispe',
-              role: 'VIEWER',
-              status: 'ACEPTADA',
-              color: '#38BDF8',
-              canDownloadBackend: false,
-            ),
+            ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
+            ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
+            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
           ],
         ),
       ];
-      await saveProjects(initial);
+      await prefs.setString(_projectsKey, jsonEncode(initial.map((p) => p.toJson()).toList()));
       return initial;
     }
 
-    try {
-      final List<dynamic> list = jsonDecode(raw);
-      return list.map((item) => ProjectSummary.fromJson(item)).toList();
-    } catch (e) {
-      return [];
-    }
+    return localProjects;
   }
 
-  /// Guarda la lista de proyectos
+  /// Guarda la lista de proyectos localmente y la sincroniza con el backend
   Future<void> saveProjects(List<ProjectSummary> projects) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(projects.map((p) => p.toJson()).toList());
     await prefs.setString(_projectsKey, jsonStr);
+
+    // Push al backend
+    try {
+      final payload = projects.map((p) => {
+        'id': p.id,
+        'name': p.name,
+        'description': p.description,
+        'ownerId': p.ownerId,
+        'ownerName': p.ownerName,
+        'totalClases': p.classCount,
+        'totalRelaciones': p.relationCount,
+        'updatedAt': p.lastModified.toIso8601String(),
+        'colaboradores': p.members.map((m) => {
+          'userId': m.userId,
+          'username': m.username,
+          'nombreCompleto': m.nombreCompleto,
+          'color': m.color,
+          'permission': m.role,
+          'canDownloadBackend': m.canDownloadBackend,
+        }).toList(),
+      }).toList();
+      await ApiSyncHelper.httpPostList('/api/v1/proyectos', payload);
+    } catch (_) {}
   }
 
   /// Carga un diagrama específico por ID
@@ -121,7 +175,7 @@ class ProjectStorageService {
     }
   }
 
-  /// Guarda un diagrama en almacenamiento local
+  /// Guarda un diagrama en almacenamiento local y actualiza métricas
   Future<void> saveDiagram(String projectId, UmlDiagram diagram) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(diagram.toJson());

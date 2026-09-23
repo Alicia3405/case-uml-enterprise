@@ -324,34 +324,32 @@ class ProjectSummary {
   };
 
   factory ProjectSummary.fromJson(Map<String, dynamic> json) {
-    String defOwnerId = 'usr_pedro_01';
-    String defOwnerName = 'Ing. Pedro Quispe';
-    if (json['id'] == 'proj_hotel_demo') {
-      defOwnerId = 'usr_maria_02';
-      defOwnerName = 'Ing. María López';
-    }
-
     List<ProjectMember> parsedMembers = [];
-    if (json['members'] != null) {
+    final rawList = json['members'] ?? json['colaboradores'];
+    if (rawList != null && rawList is List) {
       try {
-        parsedMembers = (json['members'] as List)
+        parsedMembers = rawList
             .map((m) => ProjectMember.fromJson(m as Map<String, dynamic>))
             .toList();
       } catch (_) {}
     }
 
+    final cCount = json['classCount'] ?? json['totalClases'] ?? 0;
+    final rCount = json['relationCount'] ?? json['totalRelaciones'] ?? 0;
+    final modStr = json['lastModified'] ?? json['updatedAt'] ?? json['createdAt'];
+
     return ProjectSummary(
       id: json['id'] ?? '',
       name: json['name'] ?? 'Proyecto',
       description: json['description'] ?? '',
-      ownerId: json['ownerId'] ?? defOwnerId,
-      ownerName: json['ownerName'] ?? defOwnerName,
-      isCollaborative: json['isCollaborative'] ?? false,
+      ownerId: json['ownerId'] ?? 'usr_carlos',
+      ownerName: json['ownerName'] ?? 'Propietario',
+      isCollaborative: json['isCollaborative'] ?? parsedMembers.isNotEmpty,
       members: parsedMembers,
-      classCount: json['classCount'] ?? 0,
-      relationCount: json['relationCount'] ?? 0,
-      lastModified: json['lastModified'] != null
-          ? DateTime.tryParse(json['lastModified']) ?? DateTime.now()
+      classCount: cCount is int ? cCount : int.tryParse(cCount.toString()) ?? 0,
+      relationCount: rCount is int ? rCount : int.tryParse(rCount.toString()) ?? 0,
+      lastModified: modStr != null
+          ? DateTime.tryParse(modStr.toString()) ?? DateTime.now()
           : DateTime.now(),
     );
   }

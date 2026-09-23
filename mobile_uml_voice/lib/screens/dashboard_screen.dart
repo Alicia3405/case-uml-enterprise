@@ -512,39 +512,60 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       );
     }
 
-    // Proyectos estrictamente del usuario activo
-    final myProjects = provider.projects
-        .where((p) => p.ownerId == currentUserId && 
-                      (p.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
-                       p.description.toLowerCase().contains(_searchQuery.toLowerCase())))
-        .toList();
+    final uId = (user?.id ?? 'usr_laura').toLowerCase().trim();
+    final uName = (user?.username ?? 'laura').toLowerCase().trim();
+    final usrPrefixed = 'usr_$uName';
+    final uFullName = (user?.nombreCompleto ?? '').toLowerCase().trim();
 
-    // Invitaciones pendientes para el usuario activo
-    final pendingInvitations = provider.projects.where((p) {
-      if (p.ownerId == currentUserId) return false;
-      return p.members.any((m) =>
-        (m.userId == currentUserId ||
-         (user != null && (m.username.toLowerCase() == user.username.toLowerCase() || m.nombreCompleto.toLowerCase() == user.nombreCompleto.toLowerCase()))) &&
-        m.status == 'PENDIENTE'
-      );
+    // Proyectos propios (Dueño)
+    final myProjects = provider.projects.where((p) {
+      final owner = p.ownerId.toLowerCase().trim();
+      final isOwner = owner == uId ||
+                      owner == uName ||
+                      owner == usrPrefixed ||
+                      'usr_$owner' == uId ||
+                      (uFullName.isNotEmpty && p.ownerName.toLowerCase().trim() == uFullName);
+      final matchesQuery = _searchQuery.isEmpty ||
+          p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          p.description.toLowerCase().contains(_searchQuery.toLowerCase());
+      return isOwner && matchesQuery;
     }).toList();
 
-    // Proyectos colaborativos asignados (donde no es el dueño directo y la invitación está aceptada)
-    final collabProjects = provider.projects
-        .where((p) {
-          if (p.ownerId == currentUserId) return false;
-          final matchesQuery = p.name.toLowerCase().contains(_searchQuery.toLowerCase()) || 
-                               p.description.toLowerCase().contains(_searchQuery.toLowerCase());
-          if (!matchesQuery) return false;
-          final isMemberAccepted = p.members.any((m) =>
-            (m.userId == currentUserId ||
-             (user != null && (m.username.toLowerCase() == user.username.toLowerCase() || m.nombreCompleto.toLowerCase() == user.nombreCompleto.toLowerCase()))) &&
-            m.status == 'ACEPTADA'
-          );
-          final isDemoHotelForPedro = (p.id == 'proj_hotel_demo' && currentUserId == 'usr_pedro_01');
-          return isMemberAccepted || isDemoHotelForPedro;
-        })
-        .toList();
+    // Proyectos colaborativos asignados directamente (sin requerir aceptación)
+    final collabProjects = provider.projects.where((p) {
+      final owner = p.ownerId.toLowerCase().trim();
+      final isOwner = owner == uId ||
+                      owner == uName ||
+                      owner == usrPrefixed ||
+                      'usr_$owner' == uId ||
+                      (uFullName.isNotEmpty && p.ownerName.toLowerCase().trim() == uFullName);
+      if (isOwner) return false;
+
+      final matchesQuery = _searchQuery.isEmpty ||
+          p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          p.description.toLowerCase().contains(_searchQuery.toLowerCase());
+      if (!matchesQuery) return false;
+
+      return p.members.any((m) {
+        final mId = m.userId.toLowerCase().trim();
+        final mUsername = m.username.toLowerCase().trim();
+        final mName = m.nombreCompleto.toLowerCase().trim();
+
+        final matchesUser = mId == uId ||
+                            mId == uName ||
+                            mId == usrPrefixed ||
+                            'usr_$mId' == uId ||
+                            mUsername == uName ||
+                            mUsername == uId ||
+                            'usr_$mUsername' == uId ||
+                            (uFullName.isNotEmpty && mName.isNotEmpty && mName == uFullName);
+
+        final hasPermission = m.role == 'EDITOR' || m.role == 'VIEWER';
+        return matchesUser && hasPermission;
+      });
+    }).toList();
+
+    final pendingInvitations = <ProjectSummary>[];
 
     // Proyectos para Supervisión Administrativa (Todos los proyectos del sistema)
     final supervisionProjects = provider.projects
@@ -587,6 +608,22 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         ),
         actions: [
           IconButton(
+            onPressed: () async {
+              await provider.loadProjects();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: Color(0xFF10B981),
+                    content: Text('🔄 Proyectos sincronizados con el servidor backend.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            tooltip: 'Sincronizar proyectos en tiempo real',
+            icon: const Icon(Icons.refresh, color: Color(0xFF10B981)),
+          ),
+          IconButton(
             onPressed: widget.onStartTour ?? () {
               showDialog(
                 context: context,
@@ -595,22 +632,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             },
             tooltip: 'Tutorial Interactivo (?)',
             icon: const Icon(Icons.help_outline, color: Color(0xFF2DD4BF)),
-          ),
-          IconButton(
-            onPressed: () => _showNotificationsSheet(
-              context,
-              provider,
-              pendingInvitations,
-              currentUserId,
-              user?.username ?? '',
-            ),
-            tooltip: 'Notificaciones (${pendingInvitations.length})',
-            icon: Badge(
-              isLabelVisible: pendingInvitations.isNotEmpty,
-              label: Text('${pendingInvitations.length}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-              backgroundColor: const Color(0xFFEF4444),
-              child: const Icon(Icons.notifications_outlined, color: Color(0xFFF59E0B)),
-            ),
           ),
           IconButton(
             onPressed: () => _showJsonImportExport(provider),
