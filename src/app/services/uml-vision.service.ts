@@ -873,6 +873,7 @@ Cita 1 -> * Medica : relaciona`;
 
       if (isExplicitNewClass) {
         let cleanClassName = line
+          .replace(/^[0-9\s\+\-\#\~\:\.\,\;\`\'\"\_\~]+/, '')
           .replace(/^[«<\[\{]+/, '')
           .replace(/[»>\]\}]+$/, '')
           .replace(/^class\s+/i, '')
@@ -880,6 +881,10 @@ Cita 1 -> * Medica : relaciona`;
           .replace(/^entity/i, '')
           .replace(/[^a-zA-Z0-9_\s]/g, '')
           .trim();
+
+        // Extraer la primera palabra limpia que empiece por letra
+        const words = cleanClassName.split(/\s+/).filter(w => w.length >= 3);
+        let candidateName = words[0] || '';
 
         const isJunkName = (name: string): boolean => {
           const lower = name.toLowerCase().trim();
@@ -893,14 +898,15 @@ Cita 1 -> * Medica : relaciona`;
             lower === 'larreaad' ||
             lower.startsWith('22yxq') ||
             lower.startsWith('emmacp') ||
+            /\b(string|integer|long|date|double|boolean|pk|fk)\b/i.test(lower) ||
             /^(.)\1{2,}$/.test(lower)
           );
         };
 
-        if (cleanClassName && cleanClassName.length >= 3 && !this.isStereotypeLine(cleanClassName) && !isJunkName(cleanClassName)) {
-          const formattedClassName = this.toPascalCase(cleanClassName);
+        if (candidateName && !this.isStereotypeLine(candidateName) && !this.isAttributeLine(candidateName) && !isJunkName(candidateName)) {
+          const formattedClassName = this.toPascalCase(candidateName);
           const clsLower = formattedClassName.toLowerCase();
-          const detectedPos = positions?.get(clsLower) || positions?.get(cleanClassName.toLowerCase());
+          const detectedPos = positions?.get(clsLower) || positions?.get(candidateName.toLowerCase());
           
           const newClass = {
             name: formattedClassName,
