@@ -98,12 +98,6 @@
       "languageVersion": "3.0"
     },
     {
-      "name": "js",
-      "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/js-0.7.2",
-      "packageUri": "lib/",
-      "languageVersion": "3.7"
-    },
-    {
       "name": "json_annotation",
       "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/json_annotation-4.12.0",
       "packageUri": "lib/",
@@ -182,12 +176,6 @@
       "languageVersion": "3.2"
     },
     {
-      "name": "pedantic",
-      "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/pedantic-1.11.1",
-      "packageUri": "lib/",
-      "languageVersion": "2.12"
-    },
-    {
       "name": "platform",
       "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/platform-3.2.0",
       "packageUri": "lib/",
@@ -261,19 +249,19 @@
     },
     {
       "name": "speech_to_text",
-      "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/speech_to_text-6.6.2",
+      "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/speech_to_text-7.5.0",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
-    },
-    {
-      "name": "speech_to_text_macos",
-      "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/speech_to_text_macos-1.1.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.12"
     },
     {
       "name": "speech_to_text_platform_interface",
       "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/speech_to_text_platform_interface-2.5.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
+      "name": "speech_to_text_windows",
+      "rootUri": "file:///C:/Users/Kelly%20Duran/AppData/Local/Pub/Cache/hosted/pub.dev/speech_to_text_windows-1.0.1",
       "packageUri": "lib/",
       "languageVersion": "3.0"
     },

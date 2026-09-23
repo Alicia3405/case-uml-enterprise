@@ -79,74 +79,122 @@ class ProjectStorageService {
       debugPrint('Error sincronizando con backend: $e');
     }
 
-    if (localProjects.isEmpty) {
-      // Proyectos iniciales por defecto en caso de no haber conexión ni cache previo
-      final initial = [
-        ProjectSummary(
-          id: 'proj_salud_2026',
-          name: 'Sistema de Gestión de Salud Hospitalaria',
-          description: 'Modelo conceptual de datos UML 2.5 para consultas, médicos y pacientes.',
-          ownerId: 'usr_carlos',
-          ownerName: 'Ing. Carlos Mendoza',
-          classCount: 4,
-          relationCount: 3,
-          isCollaborative: true,
-          members: [
-            ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
-            ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
-            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
-          ],
-        ),
-        ProjectSummary(
-          id: 'proj_ecommerce_2026',
-          name: 'Plataforma de Facturación y Pedidos',
-          description: 'Diagrama de clases para el módulo de pagos y comprobantes fiscales.',
-          ownerId: 'usr_carlos',
-          ownerName: 'Ing. Carlos Mendoza',
-          classCount: 5,
-          relationCount: 4,
-          isCollaborative: true,
-          members: [
-            ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'VIEWER', canDownloadBackend: false),
-            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
-          ],
-        ),
-        ProjectSummary(
-          id: 'proj_laboratorio_2026',
-          name: 'Gestión de Laboratorio Clínico y Muestras',
-          description: 'Modelo de entidades UML para análisis de sangre, reactivos y resultados.',
-          ownerId: 'usr_laura',
-          ownerName: 'Dra. Laura Paredes',
-          classCount: 3,
-          relationCount: 2,
-          isCollaborative: true,
-          members: [
-            ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
-            ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
-            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
-          ],
-        ),
-        ProjectSummary(
-          id: 'proj_farmacia_2026',
-          name: 'Inventario y Dispensación Farmacéutica',
-          description: 'Control de stocks de medicamentos, lotes y prescripciones médicas.',
-          ownerId: 'usr_pedro',
-          ownerName: 'Ing. Pedro Quispe',
-          classCount: 4,
-          relationCount: 3,
-          isCollaborative: true,
-          members: [
-            ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
-            ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
-            ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
-          ],
-        ),
-      ];
-      await prefs.setString(_projectsKey, jsonEncode(initial.map((p) => p.toJson()).toList()));
-      return initial;
+    final catalog = [
+      ProjectSummary(
+        id: 'proj_plasfi_2026',
+        name: 'plasfi',
+        description: 'Modelo conceptual UML 2.5',
+        ownerId: 'usr_sofia',
+        ownerName: 'Sofía Rojas',
+        classCount: 0,
+        relationCount: 0,
+        isCollaborative: true,
+        members: [
+          ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
+        ],
+      ),
+      ProjectSummary(
+        id: 'proj_vet_2026',
+        name: 'Sistema de Veterinaria',
+        description: 'Modelo conceptual UML 2.5',
+        ownerId: 'usr_sofia',
+        ownerName: 'Sofía Rojas',
+        classCount: 3,
+        relationCount: 2,
+        isCollaborative: true,
+        members: [
+          ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
+        ],
+      ),
+      ProjectSummary(
+        id: 'proj_salud_2026',
+        name: 'Sistema de Gestión - Modelo Conceptual',
+        description: 'Modelo conceptual de datos UML 2.5 para consultas, médicos y pacientes.',
+        ownerId: 'usr_carlos',
+        ownerName: 'Ing. Carlos Mendoza',
+        classCount: 4,
+        relationCount: 3,
+        isCollaborative: true,
+        members: [
+          ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
+          ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
+        ],
+      ),
+      ProjectSummary(
+        id: 'proj_ecommerce_2026',
+        name: 'Plataforma de Facturación y Pedidos',
+        description: 'Diagrama de clases para el módulo de pagos y comprobantes fiscales.',
+        ownerId: 'usr_carlos',
+        ownerName: 'Ing. Carlos Mendoza',
+        classCount: 5,
+        relationCount: 4,
+        isCollaborative: true,
+        members: [
+          ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'VIEWER', canDownloadBackend: false),
+          ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
+        ],
+      ),
+      ProjectSummary(
+        id: 'proj_farmacia_2026',
+        name: 'Modelo Importado Enterprise Architect',
+        description: 'Control de stocks de medicamentos, lotes y prescripciones médicas.',
+        ownerId: 'usr_pedro',
+        ownerName: 'Ing. Pedro Quispe',
+        classCount: 4,
+        relationCount: 3,
+        isCollaborative: true,
+        members: [
+          ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_laura', username: 'laura', nombreCompleto: 'Dra. Laura Paredes', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
+        ],
+      ),
+      ProjectSummary(
+        id: 'proj_laboratorio_2026',
+        name: 'Gestión de Laboratorio Clínico y Muestras',
+        description: 'Modelo de entidades UML para análisis de sangre, reactivos y resultados.',
+        ownerId: 'usr_laura',
+        ownerName: 'Dra. Laura Paredes',
+        classCount: 3,
+        relationCount: 2,
+        isCollaborative: true,
+        members: [
+          ProjectMember(userId: 'usr_carlos', username: 'carlos', nombreCompleto: 'Ing. Carlos Mendoza', role: 'EDITOR', canDownloadBackend: true),
+          ProjectMember(userId: 'usr_pedro', username: 'pedro', nombreCompleto: 'Ing. Pedro Quispe', role: 'VIEWER', canDownloadBackend: false),
+          ProjectMember(userId: 'usr_sofia', username: 'sofia', nombreCompleto: 'Sofía Rojas', role: 'EDITOR', canDownloadBackend: true),
+        ],
+      ),
+    ];
+
+    // Asegurar que todos los proyectos del catálogo estén presentes
+    final mergedMap = <String, ProjectSummary>{};
+    for (final catP in catalog) {
+      mergedMap[catP.id] = catP;
+    }
+    for (final lp in localProjects) {
+      if (lp.id.isNotEmpty) {
+        if (mergedMap.containsKey(lp.id)) {
+          // Mantener o fusionar miembros si se añadieron dinámicamente
+          final base = mergedMap[lp.id]!;
+          for (final m in lp.members) {
+            if (!base.members.any((x) => x.userId.toLowerCase() == m.userId.toLowerCase())) {
+              base.members.add(m);
+            }
+          }
+        } else {
+          mergedMap[lp.id] = lp;
+        }
+      }
     }
 
-    return localProjects;
+    final finalResult = mergedMap.values.toList();
+    await prefs.setString(_projectsKey, jsonEncode(finalResult.map((p) => p.toJson()).toList()));
+    return finalResult;
   }
 
   /// Guarda la lista de proyectos localmente y la sincroniza con el backend
