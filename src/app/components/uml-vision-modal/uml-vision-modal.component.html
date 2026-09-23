@@ -49,80 +49,17 @@
         <div class="text-[10px] text-slate-500 mt-0.5">Formatos admitidos: PNG, JPG, JPEG, WebP.</div>
       </div>
 
-      <!-- Barra de Modo de Reconocimiento -->
-      <div class="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+      <!-- Indicador de Digitalización Directa -->
+      <div class="p-3 bg-slate-950/70 border border-slate-800 rounded-xl flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <span class="text-[11px] font-bold text-slate-300">Modo de Digitalización:</span>
-          
-          <!-- Botón Modo Local 2D (Default) -->
-          <button 
-            type="button"
-            (click)="setEngineMode('LOCAL_2D')"
-            class="px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 border"
-            [class.bg-teal-500/20]="engineMode() === 'LOCAL_2D'"
-            [class.text-teal-300]="engineMode() === 'LOCAL_2D'"
-            [class.border-teal-500/40]="engineMode() === 'LOCAL_2D'"
-            [class.bg-slate-900]="engineMode() !== 'LOCAL_2D'"
-            [class.text-slate-400]="engineMode() !== 'LOCAL_2D'"
-            [class.border-slate-800]="engineMode() !== 'LOCAL_2D'">
-            <span>⚡ Motor Espacial 2D (Automático / Sin Registro)</span>
-          </button>
-
-          <!-- Botón Opcional Gemini Vision -->
-          <button 
-            type="button"
-            (click)="setEngineMode('GEMINI_VISION')"
-            class="px-2.5 py-1 rounded-lg text-xs font-semibold transition flex items-center space-x-1 border"
-            [class.bg-blue-500/20]="engineMode() === 'GEMINI_VISION'"
-            [class.text-blue-300]="engineMode() === 'GEMINI_VISION'"
-            [class.border-blue-500/40]="engineMode() === 'GEMINI_VISION'"
-            [class.bg-slate-900]="engineMode() !== 'GEMINI_VISION'"
-            [class.text-slate-400]="engineMode() !== 'GEMINI_VISION'"
-            [class.border-slate-800]="engineMode() !== 'GEMINI_VISION'">
-            <span>🧠 Modo Nube (Opcional)</span>
-          </button>
+          <span class="text-[11px] font-bold text-teal-300">⚡ Motor Espacial UML de Alta Precisión (Reconocimiento Directo)</span>
         </div>
-
-        @if (engineMode() === 'LOCAL_2D') {
-          <div class="text-[10px] text-teal-400/90 flex items-center space-x-1">
-            <span>✓ Listo para usar sin credenciales ni internet</span>
-          </div>
-        } @else {
-          <button 
-            type="button"
-            (click)="showGeminiConfig.set(!showGeminiConfig())" 
-            class="text-[11px] text-blue-400 hover:text-blue-300 underline font-semibold transition">
-            {{ geminiApiKey() ? '🔑 Clave Guardada' : '⚙️ Configurar Clave' }}
-          </button>
-        }
+        <div class="text-[10px] text-teal-400/90 flex items-center space-x-1">
+          <span>✓ Procesamiento local sin claves API ni dependencias externas</span>
+        </div>
       </div>
 
-      <!-- Configuración Opcional Nube -->
-      @if (engineMode() === 'GEMINI_VISION' && (showGeminiConfig() || !geminiApiKey())) {
-        <div class="p-3 bg-blue-950/30 border border-blue-800/60 rounded-xl space-y-2 animate-fadeIn">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-bold text-blue-300">Clave API de Gemini (Opcional):</span>
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[10px] text-blue-400 hover:underline">
-              Obtener clave gratuita &rarr;
-            </a>
-          </div>
-          <div class="flex items-center space-x-2">
-            <input 
-              type="password"
-              [value]="geminiApiKey()"
-              (input)="saveGeminiKey($any($event.target).value)"
-              placeholder="Pega aquí tu clave (opcional)..."
-              class="flex-1 bg-slate-900 border border-blue-700/60 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-blue-400 font-mono"
-            />
-            <button 
-              type="button"
-              (click)="showGeminiConfig.set(false)"
-              class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition">
-              Aceptar
-            </button>
-          </div>
-        </div>
-      }
+
 
       <!-- Vista de Procesamiento y Resultados -->
       @if (selectedImageBase64()) {

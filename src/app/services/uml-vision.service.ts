@@ -239,15 +239,15 @@ export class UmlVisionService {
           const combinedHeight = Math.max(c1.maxY, c2.maxY) - Math.min(c1.minY, c2.minY);
 
           // Criterios espaciales adaptativos proporcionales a la altura de la fuente:
-          // a) En la misma línea horizontal con poca distancia
-          const isSameLine = dy <= avgWordH * 0.8 && dx <= avgWordW * 3.5;
-          // b) Renglones consecutivos de la misma tabla
-          const isAdjacentLine = (xOverlap > 4 || dx <= avgWordW * 2.2) && dy <= avgWordH * 3.2;
-          // c) Separador interno entre atributos y métodos
-          const isInternalBlock = xOverlap > Math.min(minW * 0.2, avgWordW * 2) && dy <= avgWordH * 4.5;
+          // a) En la misma línea horizontal con poca distancia (mismo título o atributo)
+          const isSameLine = dy <= avgWordH * 0.7 && dx <= avgWordW * 2.8;
+          // b) Renglones consecutivos dentro del rectángulo de la misma clase
+          const isAdjacentLine = (xOverlap > Math.min(minW * 0.4, 15) || dx <= avgWordW * 1.5) && dy <= avgWordH * 2.2;
+          // c) Bloque interno entre atributos y métodos de una misma caja
+          const isInternalBlock = xOverlap > Math.min(minW * 0.5, 25) && dy <= avgWordH * 2.8;
 
-          const maxAllowedWidth = Math.max(imgWidth * 0.55, avgWordW * 45, 550);
-          const maxAllowedHeight = Math.max(imgHeight * 0.90, avgWordH * 55, 950);
+          const maxAllowedWidth = Math.max(imgWidth * 0.38, avgWordW * 28, 380);
+          const maxAllowedHeight = Math.max(imgHeight * 0.60, avgWordH * 35, 600);
 
           if ((isSameLine || isAdjacentLine || isInternalBlock) && combinedWidth <= maxAllowedWidth && combinedHeight <= maxAllowedHeight) {
             c1.words.push(...c2.words);

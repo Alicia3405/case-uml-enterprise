@@ -174,15 +174,19 @@ export class VoiceCommandService {
   }
 
   startListening(): void {
-    if (this.recognition && !this.isListening()) {
+    this.transcript.set('Escuchando orden...');
+    this.accumulatedCommandText = '';
+    
+    if (this.recognition) {
       this.isListening.set(true);
-      this.transcript.set('Escuchando orden...');
-      this.accumulatedCommandText = '';
       try {
         this.recognition.start();
       } catch (e) {
-        console.warn(e);
+        console.warn('Speech recognition start error:', e);
       }
+    } else {
+      // Fallback si no hay API de reconocimiento por SSL/Navegador: simular recepción
+      this.isListening.set(true);
     }
   }
 
