@@ -258,21 +258,17 @@ export class UmlWorkspaceComponent {
     return this.notifService.getPendingInvitationsForProject(projId);
   });
 
-  // Usuarios del sistema disponibles para ser asignados/invitados como colaboradores
+  // Usuarios del sistema disponibles para ser asignados directamente como colaboradores
   availableUsersToAdd = computed(() => {
     const proj = this.projectService.activeProject();
     if (!proj) return [];
     const allUsers = this.authService.users();
-    const pendingInvites = this.pendingProjectInvitations();
     return allUsers.filter(u => {
       // Excluir al dueño
       if (proj.ownerId === u.id) return false;
       // Excluir a los que ya son colaboradores activos (EDITOR o VIEWER)
-      const isAlreadyCollab = proj.colaboradores.some(c => c.userId === u.id && (c.permission === 'EDITOR' || c.permission === 'VIEWER'));
-      if (isAlreadyCollab) return false;
-      // Excluir a los que ya tienen una invitación pendiente
-      const hasPending = pendingInvites.some(inv => inv.targetUserId === u.id);
-      return !hasPending;
+      const isAlreadyCollab = proj.colaboradores && proj.colaboradores.some(c => c.userId === u.id && (c.permission === 'EDITOR' || c.permission === 'VIEWER'));
+      return !isAlreadyCollab;
     });
   });
 
@@ -2336,7 +2332,7 @@ export class UmlWorkspaceComponent {
     const userId = this.selectedUserToAdd();
     const role = this.selectedRoleToAdd() === 'VIEWER' ? 'VIEWER' : 'EDITOR';
     if (!userId) {
-      this.notify('⚠️ Selecciona un usuario para invitar.');
+      this.notify('⚠️ Selecciona un usuario para agregar al equipo.');
       return;
     }
     const proj = this.projectService.activeProject();
@@ -2344,7 +2340,12 @@ export class UmlWorkspaceComponent {
     const targetUser = this.authService.users().find(u => u.id === userId);
     if (!targetUser) return;
 
-    const res = this.notifService.sendInvitation(
+    // 1. Asignar directamente el rol en el proyecto
+    this.projectService.updateCollaboratorPermission(proj.id, targetUser.id, role);
+    this.collabSocket.emitPermissionChange(targetUser.id, role);
+
+    // 2. Notificar por WebSocket / Backend
+    this.notifService.sendInvitation(
       proj.id,
       this.getProjectDisplayName(proj),
       targetUser.id,
@@ -2353,12 +2354,8 @@ export class UmlWorkspaceComponent {
       role
     );
 
-    if (res.success) {
-      this.notify(res.message);
-      this.selectedUserToAdd.set('');
-    } else {
-      this.notify(res.message);
-    }
+    this.selectedUserToAdd.set('');
+    this.notify(`✅ ${targetUser.nombreCompleto} ha sido asignado como ${role === 'EDITOR' ? 'Editor' : 'Lector'}.`);
   }
 
   aceptarInvitacion(invitationId: string) {

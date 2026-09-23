@@ -1504,11 +1504,11 @@
               </p>
             </div>
 
-            <!-- SECCIÓN: ENVIAR INVITACIÓN / SOLICITUD DE COLABORACIÓN (SOLO PROPIETARIO) -->
+            <!-- SECCIÓN: ASIGNAR COLABORADOR DIRECTO AL EQUIPO (SOLO PROPIETARIO) -->
             @if (projectService.activeProject()?.ownerId === authService.currentUser()?.id) {
               <div class="p-3 bg-slate-950 border border-teal-500/30 rounded-xl space-y-2.5">
                 <div class="text-[10px] font-bold uppercase text-teal-400 tracking-wider flex items-center justify-between">
-                  <span>✉️ Invitar Nuevo Colaborador</span>
+                  <span>➕ Asignar Miembro al Equipo</span>
                   <span class="text-[9px] text-slate-500 font-mono">{{ availableUsersToAdd().length }} disponibles</span>
                 </div>
                 
@@ -1518,7 +1518,7 @@
                       [ngModel]="selectedUserToAdd()" 
                       (ngModelChange)="selectedUserToAdd.set($event)"
                       class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-200 outline-none focus:border-teal-500 cursor-pointer">
-                      <option value="">-- Seleccionar usuario para invitar --</option>
+                      <option value="">-- Seleccionar miembro del equipo --</option>
                       @for (avail of availableUsersToAdd(); track avail.id) {
                         <option [value]="avail.id">
                           {{ avail.nombreCompleto }} (@{{ avail.username }})
@@ -1538,15 +1538,15 @@
                       <button 
                         (click)="enviarInvitacionColaborador()"
                         [disabled]="!selectedUserToAdd()"
-                        class="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg shadow transition whitespace-nowrap flex items-center space-x-1">
-                        <span>✉️</span>
-                        <span>Enviar Solicitud</span>
+                        class="px-3.5 py-1.5 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs rounded-lg shadow transition whitespace-nowrap flex items-center space-x-1">
+                        <span>➕</span>
+                        <span>Asignar</span>
                       </button>
                     </div>
                   </div>
                 } @else {
                   <p class="text-[10px] text-slate-500 italic">
-                    Todos los usuarios del sistema ya forman parte del equipo o tienen solicitudes pendientes.
+                    Todos los usuarios del catálogo ya forman parte de este proyecto.
                   </p>
                 }
               </div>
