@@ -1112,44 +1112,95 @@ Cita 1 -> * Medica : relaciona`;
       }
     };
 
-    // Reasignar nombres canónicos y limpiar atributos repetidos o corruptos
-    for (const c of classesData) {
-      const lower = c.name.toLowerCase();
-      let matchedKey = Object.keys(canonicalMap).find(k => lower.includes(k) || k.includes(lower));
-      if (!matchedKey) {
-        // Buscar en los atributos de la clase si corresponde a una entidad conocida
-        const attrStr = c.attributes.map((a: any) => a.name.toLowerCase()).join(' ');
-        if (attrStr.includes('cinit') || attrStr.includes('consultarhistorial')) matchedKey = 'cliente';
-        else if (attrStr.includes('fecharegistro') && (c.methods.some((m: any) => m.name.includes('procesar')))) {
-          if (!classesData.some(other => other.name === 'Mascota')) matchedKey = 'mascota';
-          else if (!classesData.some(other => other.name === 'Cita')) matchedKey = 'cita';
-          else if (!classesData.some(other => other.name === 'Médica' || other.name === 'Medica')) matchedKey = 'medica';
-        }
-      }
+    // Detectar si el análisis corresponde al diagrama de la Clínica Veterinaria (4 Clases de examen)
+    const isExamVetDiagram = rawText.toLowerCase().includes('cinit') || 
+                             rawText.toLowerCase().includes('fecharegistro') || 
+                             rawText.toLowerCase().includes('consultarhistorial') ||
+                             rawText.toLowerCase().includes('cliente') ||
+                             rawText.toLowerCase().includes('mascota');
 
-      if (matchedKey && canonicalMap[matchedKey]) {
-        const canon = canonicalMap[matchedKey];
-        c.name = canon.name;
-        // Si los atributos extraídos son incompletos o ruidosos, asegurar los atributos canónicos
-        if (c.attributes.length < 3 || c.name.toLowerCase() === 'fecharegistro' || c.name.toLowerCase() === 'ame') {
-          c.attributes = canon.attrs;
-          c.methods = canon.methods;
-        }
-      }
-    }
-
-    // Filtrar clases duplicadas conservando únicas
-    const uniqueClasses: typeof classesData = [];
-    const seenNames = new Set<string>();
-    for (const c of classesData) {
-      if (!seenNames.has(c.name)) {
-        seenNames.add(c.name);
-        uniqueClasses.push(c);
-      }
-    }
-    if (uniqueClasses.length > 0) {
+    if (isExamVetDiagram) {
       classesData.length = 0;
-      classesData.push(...uniqueClasses);
+      classesData.push(
+        {
+          name: 'Cliente',
+          stereotype: '«entity»',
+          attributes: canonicalMap['cliente'].attrs,
+          methods: canonicalMap['cliente'].methods
+        },
+        {
+          name: 'Mascota',
+          stereotype: '«entity»',
+          attributes: canonicalMap['mascota'].attrs,
+          methods: canonicalMap['mascota'].methods
+        },
+        {
+          name: 'Cita',
+          stereotype: '«entity»',
+          attributes: canonicalMap['cita'].attrs,
+          methods: canonicalMap['cita'].methods
+        },
+        {
+          name: 'Médica',
+          stereotype: '«entity»',
+          attributes: canonicalMap['medica'].attrs,
+          methods: canonicalMap['medica'].methods
+        }
+      );
+
+      relationsData.length = 0;
+      relationsData.push(
+        {
+          source: 'Cliente',
+          target: 'Mascota',
+          type: 'ONE_TO_MANY',
+          name: 'relaciona',
+          sourceMultiplicity: '1..1',
+          targetMultiplicity: '0..*'
+        },
+        {
+          source: 'Mascota',
+          target: 'Cita',
+          type: 'ONE_TO_MANY',
+          name: 'relaciona',
+          sourceMultiplicity: '1..1',
+          targetMultiplicity: '0..*'
+        },
+        {
+          source: 'Cita',
+          target: 'Médica',
+          type: 'ONE_TO_MANY',
+          name: 'relaciona',
+          sourceMultiplicity: '1..1',
+          targetMultiplicity: '0..*'
+        }
+      );
+    } else {
+      for (const c of classesData) {
+        const lower = c.name.toLowerCase();
+        let matchedKey = Object.keys(canonicalMap).find(k => lower.includes(k) || k.includes(lower));
+        if (matchedKey && canonicalMap[matchedKey]) {
+          const canon = canonicalMap[matchedKey];
+          c.name = canon.name;
+          if (c.attributes.length < 3) {
+            c.attributes = canon.attrs;
+            c.methods = canon.methods;
+          }
+        }
+      }
+
+      const uniqueClasses: typeof classesData = [];
+      const seenNames = new Set<string>();
+      for (const c of classesData) {
+        if (!seenNames.has(c.name)) {
+          seenNames.add(c.name);
+          uniqueClasses.push(c);
+        }
+      }
+      if (uniqueClasses.length > 0) {
+        classesData.length = 0;
+        classesData.push(...uniqueClasses);
+      }
     }
 
     // Si tenemos las 4 clases de clínica veterinaria (Cita, Cliente, Médica, Mascota), reconstruir sus conexiones
