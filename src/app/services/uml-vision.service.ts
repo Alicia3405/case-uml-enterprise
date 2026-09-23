@@ -554,6 +554,8 @@ Devuelve ÚNICAMENTE un objeto JSON válido sin bloques markdown ni texto extra,
    */
   cleanTextTypos(raw: string): string {
     let text = raw;
+    // Eliminar anotaciones de colecciones UML como {bag}, {set}, {sequence}, {ordered}, [bag], etc.
+    text = text.replace(/[\{\[]\s*(bag|set|sequence|ordered|list)\s*[\}\]]/gi, '');
     // Tipos de retorno mal leídos
     text = text.replace(/:\s*2-7\b/g, ': String');
     text = text.replace(/:\s*27\b/g, ': String');
@@ -719,16 +721,17 @@ Cita 1 -> * Medica : relaciona`;
 
   isAttributeLine(line: string): boolean {
     if (this.isMethodLine(line) || this.isRelationLine(line) || this.isStereotypeLine(line)) return false;
+    const clean = line.replace(/[\{\[]\s*(bag|set|sequence|ordered|list)\s*[\}\]]/gi, '').trim();
     return (
-      line.includes(':') || 
-      /^[\+\-\#\~]/.test(line.trim()) || 
-      /\b(id|pk|string|int|integer|long|double|boolean|date|fecha|nombre|text|total|monto|precio)\b/i.test(line)
+      clean.includes(':') || 
+      /^[\+\-\#\~]/.test(clean) || 
+      /\b(id|pk|string|int|integer|long|double|boolean|date|fecha|nombre|text|total|monto|precio|codigo|cod|ci|nit|telefono|email|direccion|estado)\b/i.test(clean)
     );
   }
 
   extractClassNameFromLines(lines: string[]): string {
     for (const line of lines) {
-      const trimmed = line.trim();
+      let trimmed = line.replace(/[\{\[]\s*(bag|set|sequence|ordered|list)\s*[\}\]]/gi, '').trim();
       if (this.isStereotypeLine(trimmed)) continue;
       if (this.isAttributeLine(trimmed) || this.isMethodLine(trimmed)) continue;
 
@@ -780,8 +783,8 @@ Cita 1 -> * Medica : relaciona`;
     };
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (isHeaderNoise(line)) continue;
+      let line = lines[i].replace(/[\{\[]\s*(bag|set|sequence|ordered|list)\s*[\}\]]/gi, '').trim();
+      if (!line || isHeaderNoise(line)) continue;
 
       // 0. Separador explícito de tarjetas/bloques entre clases
       if (line.startsWith('---') || line === '***' || line.startsWith('===') || line.startsWith('___')) {
@@ -902,7 +905,7 @@ Cita 1 -> * Medica : relaciona`;
       // Si estamos dentro de una clase activa, TODAS las líneas siguientes son miembros (métodos o atributos)
       if (currentClass) {
         // 3. ¿Es un método? (contiene '()' o palabras clave de operación)
-        if (this.isMethodLine(line) || /\b(ver|get|set|agregar|eliminar|cobrar|modificar|entrada|salida|registro|recarga|atender|consulta|mantenimiento)\b/i.test(line)) {
+        if (this.isMethodLine(line) || /\b(ver|get|set|agregar|eliminar|cobrar|modificar|entrada|salida|registro|recarga|atender|consulta|mantenimiento|procesar|obtener)\b/i.test(line)) {
           // Si la línea contiene múltiples métodos en una sola línea (ej: "+ Entrada en el sistema () + Salida del sistema ()")
           const methodParts = line.split(/(?:\(\)\s*(?:\+|\-|\#|\~)?)/g).filter(p => p.trim().length > 0);
           const partsToProcess = methodParts.length > 1 ? methodParts : [line];
@@ -1012,37 +1015,14 @@ Cita 1 -> * Medica : relaciona`;
 
     // Auto-conectar relaciones semánticas si no se detectaron relaciones explícitas
     if (relationsData.length === 0 && classesData.length >= 2) {
-      if (rawText.toLowerCase().includes('tiene')) {
+      for (let idx = 0; idx < classesData.length - 1; idx++) {
         relationsData.push({
-          source: classesData[0].name,
-          target: classesData[1].name,
-          type: 'ONE_TO_ONE',
-          name: 'tiene',
+          source: classesData[idx].name,
+          target: classesData[idx + 1].name,
+          type: 'ONE_TO_MANY',
+          name: 'relaciona',
           sourceMultiplicity: '1',
-          targetMultiplicity: '1'
-        });
-      }
-      if (rawText.toLowerCase().includes('debe') && classesData.length >= 3) {
-        relationsData.push({
-          source: classesData[1].name,
-          target: classesData[2].name,
-          type: 'MANY_TO_MANY',
-          name: 'debe',
-          sourceMultiplicity: '*',
-          targetMultiplicity: '*'
-        });
-      }
-      const tarjetaClass = classesData.find(c => c.name.toLowerCase().includes('tarjeta'));
-      if (tarjetaClass) {
-        classesData.filter(c => c !== tarjetaClass).forEach(c => {
-          relationsData.push({
-            source: c.name,
-            target: tarjetaClass.name,
-            type: 'ONE_TO_MANY',
-            name: 'asocia',
-            sourceMultiplicity: '1',
-            targetMultiplicity: '0..*'
-          });
+          targetMultiplicity: '0..*'
         });
       }
     }
@@ -1068,19 +1048,19 @@ Cita 1 -> * Medica : relaciona`;
 
   /**
    * Normaliza los datos extraídos y calcula el auto-layout espacial para que las clases no se encimen.
-   * Si son 2 a 4 clases, las alinea horizontalmente en una fila continua.
+   * Organiza las clases en una cuadrícula 2x2 bien espaciada si son 4 clases (o en 2 filas equilibradas).
    */
   normalizeScanResult(raw: any, imagePreview: string, modelName: string): VisionScanResult {
     const rawClasses: any[] = raw.classes || [];
     const rawRelations: any[] = raw.relations || [];
 
-    const startX = 60;
+    const startX = 80;
     const startY = 80;
-    const colSpacing = 300;
-    const rowSpacing = 260;
+    const colSpacing = 360;
+    const rowSpacing = 280;
     
-    // Si son hasta 4 clases, alinearlas en 1 sola fila horizontal
-    const cols = rawClasses.length <= 4 ? Math.max(1, rawClasses.length) : 3;
+    // Distribución en cuadrícula 2x2 para 4 clases
+    const cols = rawClasses.length <= 2 ? rawClasses.length : 2;
 
     const nameToIdMap = new Map<string, string>();
 
@@ -1091,16 +1071,20 @@ Cita 1 -> * Medica : relaciona`;
       const col = index % cols;
       const row = Math.floor(index / cols);
 
+      // Si las posiciones del scanner están encimadas o son nulas, asignar la cuadrícula limpia
+      const calculatedX = startX + col * colSpacing;
+      const calculatedY = startY + row * rowSpacing;
+
       return {
         id: classId,
         name: c.name || `Clase${index + 1}`,
         elementType: 'CLASS',
         stereotype: c.stereotype || '«entity»',
-        width: 240,
-        height: 190,
+        width: 250,
+        height: 200,
         position: {
-          x: c.position?.x ? Math.max(40, Math.round(c.position.x)) : (startX + col * colSpacing),
-          y: c.position?.y ? Math.max(40, Math.round(c.position.y)) : (startY + row * rowSpacing)
+          x: (c.position?.x && c.position.x > 10) ? Math.max(40, Math.round(c.position.x)) : calculatedX,
+          y: (c.position?.y && c.position.y > 10) ? Math.max(40, Math.round(c.position.y)) : calculatedY
         },
         attributes: (c.attributes || []).map((a: any, aIdx: number) => ({
           id: `attr_${classId}_${aIdx}`,
