@@ -227,17 +227,39 @@ class ProjectStorageService {
     } catch (_) {}
   }
 
+  static const String _activeDiagramKey = 'case_diagram_';
+  static const String _legacyDiagramKey = 'case_mobile_active_diagram_';
+
   /// Carga un diagrama específico por ID
   Future<UmlDiagram?> loadDiagram(String projectId) async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('$_activeDiagramKey$projectId');
-    if (raw == null || raw.isEmpty) return null;
+
+    // 1. Intentar cargar del backend central AWS
     try {
-      final Map<String, dynamic> data = jsonDecode(raw);
-      return UmlDiagram.fromJson(data);
-    } catch (e) {
-      return null;
+      final backendResp = await ApiSyncHelper.httpGet('/api/v1/proyectos/$projectId/diagrama');
+      if (backendResp != null && backendResp.isNotEmpty) {
+        final Map<String, dynamic> data = jsonDecode(backendResp);
+        final diagram = UmlDiagram.fromJson(data);
+        await prefs.setString('$_activeDiagramKey$projectId', jsonEncode(diagram.toJson()));
+        return diagram;
+      }
+    } catch (_) {}
+
+    // 2. Cargar de caché local unificada
+    var raw = prefs.getString('$_activeDiagramKey$projectId');
+    if (raw == null || raw.isEmpty) {
+      raw = prefs.getString('$_legacyDiagramKey$projectId');
     }
+
+    if (raw != null && raw.isNotEmpty) {
+      try {
+        final Map<String, dynamic> data = jsonDecode(raw);
+        return UmlDiagram.fromJson(data);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
   }
 
   /// Guarda un diagrama en almacenamiento local y actualiza métricas
@@ -245,6 +267,11 @@ class ProjectStorageService {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(diagram.toJson());
     await prefs.setString('$_activeDiagramKey$projectId', jsonStr);
+
+    // Push del diagrama completo al backend central AWS
+    try {
+      await ApiSyncHelper.httpPost('/api/v1/proyectos/$projectId/diagrama', diagram.toJson());
+    } catch (_) {}
 
     // Actualizar resumen en la lista de proyectos
     final projects = await getProjects();

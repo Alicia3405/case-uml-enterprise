@@ -263,6 +263,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0F172A),
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -273,15 +274,31 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              '🔄 Interoperabilidad Web / Móvil (JSON)',
+              '🔄 Sincronización e Interoperabilidad Web ⟷ Móvil',
               style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
             const Text(
-              'Exporta el modelo actual para abrirlo en la Web o importa un JSON copiado de Angular.',
+              'Sincroniza tus diagramas directamente con AWS o transfiere proyectos entre Web y Móvil.',
               style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
             ),
             const SizedBox(height: 18),
+            ElevatedButton.icon(
+              onPressed: () async {
+                await provider.loadProjects();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: Color(0xFF10B981),
+                    content: Text('✅ Sincronización completa con AWS ejecutada.'),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.cloud_sync, size: 18),
+              label: const Text('Forzar Sincronización en la Nube (AWS)'),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED)),
+            ),
+            const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: () {
                 final jsonStr = provider.activeDiagram.toFormattedJson();
@@ -299,7 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             OutlinedButton.icon(
               onPressed: () async {
                 final data = await Clipboard.getData('text/plain');
-                if (data?.text != null && data!.text!.contains('"classes"')) {
+                if (data?.text != null && (data!.text!.contains('"classes"') || data!.text!.contains('"name"'))) {
                   try {
                     provider.executeAiArchitecturePrompt(data.text!);
                     Navigator.pop(ctx);

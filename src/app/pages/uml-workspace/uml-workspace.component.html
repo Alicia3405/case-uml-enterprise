@@ -169,7 +169,7 @@
 
 
           <button 
-            (click)="projectService.fetchProjectsFromBackend(); notify('🔄 Proyectos sincronizados en red con el servidor')"
+            (click)="projectService.pushProjectsToBackend(); projectService.fetchProjectsFromBackend(); notify('🔄 Proyectos sincronizados en red con el servidor')"
             class="flex items-center space-x-1 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700 rounded-xl text-xs font-semibold transition"
             title="Sincronizar proyectos en red ahora">
             <span>🔄 Sincronizar</span>
