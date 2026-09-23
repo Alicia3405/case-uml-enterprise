@@ -23,7 +23,6 @@ export class AdminPanelModalComponent {
   // Formulario nuevo usuario
   newUsername = '';
   newFullName = '';
-  newDepartment = 'Desarrollo de Software';
   initialPassword = 'empresa2026';
   userSuccessMsg = signal<string>('');
   userErrorMsg = signal<string>('');
@@ -46,9 +45,7 @@ export class AdminPanelModalComponent {
     const res = this.authService.createUser({
       username: this.newUsername,
       nombreCompleto: this.newFullName,
-      password: this.initialPassword,
-      departamento: this.newDepartment,
-      rol: 'USUARIO'
+      password: this.initialPassword
     });
 
     if (res.success) {

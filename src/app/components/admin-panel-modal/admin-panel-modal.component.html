@@ -93,17 +93,7 @@
             </div>
 
             <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Departamento</label>
-              <input 
-                type="text" 
-                [(ngModel)]="newDepartment" 
-                placeholder="Ej. Arquitectura de Datos"
-                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-purple-500"
-              />
-            </div>
-
-            <div>
-              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Contraseña Provisional</label>
+              <label class="block text-[11px] font-semibold text-slate-400 mb-1">Contraseña</label>
               <input 
                 type="text" 
                 [(ngModel)]="initialPassword" 
@@ -153,20 +143,15 @@
                     [style.background-color]="user.color">
                     {{ user.username.substring(0,1).toUpperCase() }}
                   </div>
-                  <div>
                     <div class="flex items-center space-x-2">
                       <span class="font-bold text-white">{{ user.nombreCompleto }}</span>
                       <span class="text-[10px] text-slate-400 font-mono">(@{{ user.username }})</span>
-                      <span 
-                        class="px-1.5 py-0.5 rounded text-[9px] font-bold"
-                        [class.bg-purple-500/20]="user.rol === 'ADMINISTRADOR'"
-                        [class.text-purple-300]="user.rol === 'ADMINISTRADOR'"
-                        [class.bg-blue-500/20]="user.rol !== 'ADMINISTRADOR'"
-                        [class.text-blue-300]="user.rol !== 'ADMINISTRADOR'">
-                        {{ user.rol }}
-                      </span>
+                      @if (user.rol === 'ADMINISTRADOR') {
+                        <span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] font-bold">
+                          ADMIN
+                        </span>
+                      }
                     </div>
-                    <div class="text-[10px] text-slate-400">{{ user.departamento }}</div>
                   </div>
                 </div>
 
